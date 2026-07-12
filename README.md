@@ -34,8 +34,10 @@ npm run dev           # 同时启动前端与后端
 npm run build         # 构建全部工作区
 npm run test          # 运行全部测试
 npm run lint          # 运行静态检查
+npm run typecheck     # 检查全部工作区的 TypeScript 类型
 npm run format        # 格式化代码与文档
-npm run check         # 执行 lint、test 和 build
+npm run format:check  # 检查代码与文档格式，不写入文件
+npm run check         # 执行格式、lint、类型、测试和构建检查
 npm run check:env     # 检查本地 Node/npm 环境
 ```
 
@@ -45,6 +47,8 @@ npm run check:env     # 检查本地 Node/npm 环境
 npm run dev --workspace frontend
 npm run dev --workspace backend
 ```
+
+格式化命令统一从仓库根目录运行，不在各工作区重复定义。根级 `lint`、`typecheck`、`test` 和 `build` 会严格遍历两个工作区；任一工作区缺少对应脚本都会使命令失败。
 
 ## 目录说明
 

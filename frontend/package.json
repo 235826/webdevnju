@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start --port ${FRONTEND_PORT:-3000}",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

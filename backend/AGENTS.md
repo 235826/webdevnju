@@ -9,4 +9,5 @@
 - Keep HTTP handling in controllers, business rules and transactions in services, and extract persistence to a repository when the data model or business flow grows beyond the minimal sample.
 - Use migrations for production schema evolution. Keep migrations backward compatible where a rolling deployment requires it.
 - Cover success, boundary, invalid-input, empty-result, and documented error responses with API or service tests as applicable; reference the spec acceptance-criterion IDs.
-- Run `npm run lint --workspace backend` and `npm run test --workspace backend` after changes.
+- Run `npm run lint --workspace backend`, `npm run typecheck --workspace backend`, `npm run test --workspace backend`, and `npm run build --workspace backend` after changes, then run the root-level `npm run check` before handoff.
+- Keep formatting centralized at the repository root; use root-level `npm run format` and `npm run format:check` rather than adding workspace formatting scripts.

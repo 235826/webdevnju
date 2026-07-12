@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  httpError,
-  Inject,
-  Post,
-  Query,
-} from "@midwayjs/core";
+import { Body, Controller, Get, httpError, Inject, Post } from "@midwayjs/core";
 import { CourseService } from "../service/course.service";
 import { parseCourseInput } from "../utils/course-input";
 

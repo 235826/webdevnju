@@ -17,13 +17,14 @@ Pure documentation, formatting, or behavior-preserving refactors do not require 
 ## Commands
 
 - Install dependencies with `npm install` at the repository root.
-- Run all checks with `npm run check`.
+- Run all checks with `npm run check`; it verifies formatting, linting, types, tests, and builds for both workspaces.
 - Run a single workspace command with `npm run <script> --workspace <frontend|backend>`.
+- Run formatting commands from the repository root: `npm run format` to write changes or `npm run format:check` to verify them.
 
 ## Conventions
 
 - Use TypeScript for application code.
-- Use two-space indentation and run `npm run format` before handing off changes.
+- Use two-space indentation and run the root-level `npm run format` before handing off changes.
 - Keep secrets and generated SQLite files out of version control.
 - Treat `contracts/openapi.yaml` as the source of truth for the HTTP boundary; database tables and duplicated TypeScript types are not API contracts.
 - Keep each acceptance criterion observable and reproducible; do not use a code location as the expected outcome.

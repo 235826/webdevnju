@@ -4,6 +4,8 @@
 
 好的 Spec 描述外部可观察行为，不预设代码落点。除非某项实现约束本身就是需求，否则不要指定文件、组件、类、SQL 或内部调用方式。
 
+提议中的示例见 [003：课程关键词搜索](./003-course-keyword-search.md) 与关联 [ADR-002](../docs/adr/002-course-search-responsibility-boundary.md)；二者尚未实施，实现前须按本文流程同步 Contract。
+
 ## 何时必须写
 
 在实现前新增或更新 Spec，只要改动符合以下任一项：
