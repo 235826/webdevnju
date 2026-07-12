@@ -23,6 +23,7 @@ export function CourseDashboard() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,9 +43,14 @@ export function CourseDashboard() {
         const courseData = (await courseResponse.json()) as CourseResponse;
         setHealth(healthData);
         setCourses(courseData.data);
+        setError(null);
       } catch (reason) {
         if (reason instanceof Error && reason.name !== "AbortError") {
           setError(reason.message);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
         }
       }
     }
@@ -87,32 +93,39 @@ export function CourseDashboard() {
           <p className="mt-2 text-sm">请确认后端已在 7001 端口启动：{error}</p>
         </div>
       ) : courses.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {courses.map((course, index) => (
             <article
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               key={course.id}
             >
               <span className="font-mono text-xs font-semibold text-blue-700">
                 MODULE {String(index + 1).padStart(2, "0")}
               </span>
-              <h3 className="mt-4 text-xl font-bold text-slate-900">
+              <h3 className="mt-4 text-xl font-bold text-slate-900 [overflow-wrap:anywhere]">
                 {course.title}
               </h3>
-              <p className="mt-3 leading-7 text-slate-600">
+              <p className="mt-3 leading-7 text-slate-600 [overflow-wrap:anywhere]">
                 {course.description}
               </p>
             </article>
           ))}
         </div>
-      ) : (
-        <div className="grid gap-5 md:grid-cols-3" aria-label="正在加载课程">
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2" aria-label="正在加载课程">
           {[0, 1, 2].map((item) => (
             <div
               className="h-48 animate-pulse rounded-2xl bg-slate-200"
               key={item}
             />
           ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">
+          <p className="font-semibold text-slate-900">当前还没有课程。</p>
+          <p className="mt-2 text-sm text-slate-600">
+            请先初始化示例数据，或稍后刷新页面重试。
+          </p>
         </div>
       )}
     </section>
