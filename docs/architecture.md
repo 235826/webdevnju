@@ -19,6 +19,12 @@ flowchart LR
 
 功能开发遵循 `specs → contracts → frontend/backend → test/check`。Spec、Contract、ADR 与测试各自的边界和当前模板成熟度见[模板结构审查](./architecture-review.md)。
 
+## 架构决策记录
+
+- [ADR-001：课程列表响应式布局的职责边界](./adr/001-course-list-responsive-boundary.md)
+
+ADR 记录需要长期遵守的技术取舍；用户可见行为和验收标准仍以关联 Spec 为准。
+
 ## 请求链路
 
 开发环境中，浏览器请求 Next.js 的 `/api/*`。Next.js 按 `BACKEND_INTERNAL_URL` 将请求重写到 Midway。这样本地开发和部署都保持同源请求，后端无需放宽 CORS。
