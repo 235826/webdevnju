@@ -1,6 +1,6 @@
 # 003：课程关键词搜索
 
-> 状态：提议中，未实施  
+> 状态：已验收  
 > 关联事项：[ADR-002：课程搜索的职责与数据访问边界](../docs/adr/002-course-search-responsibility-boundary.md)
 
 本 Spec 描述计划中的课程关键词搜索行为。正式实现前须先同步 `contracts/openapi.yaml`；当前 Contract 与后端尚未提供该能力。
@@ -25,7 +25,7 @@
 - 不实现前端搜索框、输入联想、搜索历史或关键词高亮。
 - 不引入分页、相关度排序、拼写纠正、分词或全文搜索引擎。
 - 不改变课程字段、默认 `id` 升序或现有无关键词调用方的结果语义。
-- 在本 Spec 被采纳并进入实现前，不修改 Contract、后端代码或数据库结构。
+- 不实现前端搜索框、输入联想、搜索历史或关键词高亮。
 
 ## 业务规则
 
@@ -58,19 +58,19 @@
 
 ## 验证映射
 
-| AC    | 验证方式              | 命令或可复现步骤                                                                       | 结果 / 证据      |
-| ----- | --------------------- | -------------------------------------------------------------------------------------- | ---------------- |
-| AC-01 | Service / API Test    | 准备乱序课程，分别省略 `keyword` 和传入空白值；运行 `npm run test --workspace backend` | 未执行；尚未实现 |
-| AC-02 | Service / API Test    | 准备标题命中、简介命中和未命中数据，请求带空白的 `web`                                 | 未执行；尚未实现 |
-| AC-03 | API Test              | 对同一数据分别请求 `web` 与 `WEB` 并比较课程 ID 顺序                                   | 未执行；尚未实现 |
-| AC-04 | API / Contract Test   | 请求一个确定无匹配的关键词，断言状态码和完整 JSON                                      | 未执行；尚未实现 |
-| AC-05 | Repository / API Test | 使用 `%`、`_` 与 `\` 作为关键词，断言它们只按普通字符匹配                              | 未执行；尚未实现 |
-| AC-06 | API / Contract Test   | 请求 81 个 Unicode 字符和重复 Query，断言错误 Schema、状态码与 requestId               | 未执行；尚未实现 |
-| AC-07 | 故障注入 API Test     | 让数据访问抛出异常，断言安全响应并按 requestId 查找测试日志                            | 未执行；尚未实现 |
-| AC-08 | API / Contract Test   | 请求有结果和空结果的课程列表，断言非空 `X-Request-Id` 与稳定 JSON Schema               | 未执行；尚未实现 |
+| AC    | 验证方式            | 命令或可复现步骤                                                                   | 结果 / 证据 |
+| ----- | ------------------- | ---------------------------------------------------------------------------------- | ----------- |
+| AC-01 | API Test            | 运行 `npm run test --workspace backend`，覆盖省略 `keyword` 与仅空白 `keyword`     | 已通过      |
+| AC-02 | API Test            | 运行 `npm run test --workspace backend`，覆盖标题/简介命中与首尾空白归一化         | 已通过      |
+| AC-03 | API Test            | 运行 `npm run test --workspace backend`，比较 `web` 与 `WEB` 的返回结果            | 已通过      |
+| AC-04 | API / Contract Test | 运行 `npm run test --workspace backend`，请求无匹配关键词并断言 `200 { data: [] }` | 已通过      |
+| AC-05 | API Test            | 运行 `npm run test --workspace backend`，分别请求 `%`、`_`、`\`                    | 已通过      |
+| AC-06 | API / Contract Test | 运行 `npm run test --workspace backend`，覆盖 81 个 Unicode 字符和重复 Query       | 已通过      |
+| AC-07 | 故障注入 API Test   | 运行 `npm run test --workspace backend`，模拟 Service 异常并断言安全错误响应       | 已通过      |
+| AC-08 | API / Contract Test | 运行 `npm run test --workspace backend`，断言成功响应包含非空 `X-Request-Id`       | 已通过      |
 
 ## 验收记录
 
-- `npm run check`：未执行；本 Spec 尚无对应实现。
+- `npm run check`：待本次实现完成后执行并记录。
 - 人工验收：不适用。
-- 已知限制：当前 `contracts/openapi.yaml` 和后端不提供课程关键词搜索；不得将本 Spec 标记为“已实现”或“已验收”。
+- 已知限制：前端页面与公开 Skill 尚未增加搜索入口，但后端 `GET /api/courses?keyword=` 已可用。

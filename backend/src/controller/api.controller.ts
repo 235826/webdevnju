@@ -1,11 +1,17 @@
-import { Body, Controller, Get, httpError, Inject, Post } from "@midwayjs/core";
+import { Body, Controller, Get, Inject, Post } from "@midwayjs/core";
+import type { Context } from "@midwayjs/koa";
 import { CourseService } from "../service/course.service";
 import { parseCourseInput } from "../utils/course-input";
+import { normalizeCourseKeyword } from "../utils/course-keyword";
+import { ValidationError } from "../utils/http-errors";
 
 @Controller("/api")
 export class ApiController {
   @Inject()
   courseService: CourseService;
+
+  @Inject()
+  ctx: Context;
 
   @Get("/health")
   async health() {
@@ -18,7 +24,15 @@ export class ApiController {
 
   @Get("/courses")
   async listCourses() {
-    return { data: this.courseService.list() };
+    const keywordValues = new URLSearchParams(this.ctx.querystring).getAll(
+      "keyword",
+    );
+    const keyword = normalizeCourseKeyword(
+      this.ctx.query.keyword,
+      keywordValues.length > 0 ? keywordValues : undefined,
+    );
+
+    return { data: this.courseService.list(keyword) };
   }
 
   @Post("/courses")
@@ -27,8 +41,11 @@ export class ApiController {
       const input = parseCourseInput(body);
       return { data: this.courseService.create(input) };
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : "课程数据无效";
-      throw new httpError.BadRequestError(message);
+      if (reason instanceof TypeError) {
+        throw new ValidationError(reason.message);
+      }
+
+      throw reason;
     }
   }
 }

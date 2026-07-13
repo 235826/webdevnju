@@ -25,7 +25,7 @@ flowchart LR
 ## 架构决策记录
 
 - [ADR-001：课程列表响应式布局的职责边界](./adr/001-course-list-responsive-boundary.md)
-- [ADR-002：课程搜索的职责与数据访问边界](./adr/002-course-search-responsibility-boundary.md)（提议中，未实施）
+- [ADR-002：课程搜索的职责与数据访问边界](./adr/002-course-search-responsibility-boundary.md)（已采纳）
 
 ADR 记录需要长期遵守的技术取舍；用户可见行为和验收标准仍以关联 Spec 为准。
 
@@ -33,7 +33,7 @@ ADR 记录需要长期遵守的技术取舍；用户可见行为和验收标准�
 
 开发环境中，浏览器请求 Next.js 的 `/api/*`。Next.js 按 `BACKEND_INTERNAL_URL` 将请求重写到 Midway。这样本地开发和部署都保持同源请求，后端无需放宽 CORS。
 
-Agent 也可直接请求 Midway（例如 `http://localhost:7001/api/courses`），按 [find-courses Skill](./skills/find-courses.md) 解释结果；当前列表 API 无服务端关键词参数。
+Agent 也可直接请求 Midway（例如 `http://localhost:7001/api/courses?keyword=react`），按 [find-courses Skill](./skills/find-courses.md) 解释结果；课程列表 API 支持可选服务端关键词参数。
 
 ## 数据策略
 

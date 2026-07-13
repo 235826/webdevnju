@@ -4,9 +4,9 @@
 
 当前示例：
 
-| Skill | 对应 API | 说明 |
-| ----- | -------- | ---- |
-| [find-courses](./find-courses.md) | `GET /api/courses` | 列课程；可选在返回结果上做 Agent 侧关键词过滤 |
+| Skill                             | 对应 API           | 说明                                                |
+| --------------------------------- | ------------------ | --------------------------------------------------- |
+| [find-courses](./find-courses.md) | `GET /api/courses` | 列课程；需要时通过可选 `keyword` Query 走服务端搜索 |
 
 可执行副本位于 [`.cursor/skills/find-courses/SKILL.md`](../../.cursor/skills/find-courses/SKILL.md)，供 Cursor Agent 按 description 发现并加载。
 

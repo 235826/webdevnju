@@ -9,3 +9,7 @@ export interface CreateCourseInput {
   title: string;
   description: string;
 }
+
+export interface CourseSearchInput {
+  keyword?: string;
+}

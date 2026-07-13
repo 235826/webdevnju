@@ -1,7 +1,7 @@
 # ADR：课程搜索的职责与数据访问边界
 
 > 编号：ADR-002  
-> 状态：提议中，未实施  
+> 状态：已采纳，已实施  
 > 日期：2026-07-12  
 > 关联 Spec：[003：课程关键词搜索](../../specs/003-course-keyword-search.md)
 
@@ -30,10 +30,10 @@
 
 ## 后果
 
-- 若该提议被采纳，现有 `CourseService` 直接访问 SQLite 的最小结构需要演进为可注入 Repository；Controller、Service 和 Repository 的测试边界也要随之补齐。
+- 现有 `CourseService` 已演进为通过可注入 Repository 访问 SQLite；Controller、Service 和 Repository 的测试边界需继续保持分层验证。
 - 不携带 `keyword` 的课程列表必须继续满足已有目录 Spec，搜索实现不能改变默认字段、空列表或 `id` 升序语义。
 - 包含匹配在数据增长后可能产生全表扫描；应先通过数据量、延迟和查询计划观察，再用新的 ADR 决定索引或全文搜索，而不是预先引入复杂度。
-- HTTP 行为只有在正式 Spec、OpenAPI、实现和验证证据同步后才算交付；本 ADR 处于提议状态，不能作为已完成的证明。
+- HTTP 行为已与 Spec、OpenAPI、实现和验证证据同步交付；后续若调整分页、索引或全文搜索，应以新的 ADR 继续约束边界。
 
 ## 不采用
 

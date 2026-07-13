@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Web Development Course API
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: http://localhost:7001
 paths:
@@ -20,22 +20,80 @@ paths:
     get:
       operationId: listCourses
       summary: 获取课程列表
+      security: []
+      x-spec:
+        file: specs/003-course-keyword-search.md
+        acceptanceCriteria:
+          [AC-01, AC-02, AC-03, AC-04, AC-05, AC-06, AC-07, AC-08]
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: 去除首尾空白后的课程关键词；为空时等同于省略。按标题或简介做包含匹配，ASCII 字母不区分大小写。
+          schema:
+            type: string
+            maxLength: 80
+        - name: X-Request-Id
+          in: header
+          required: false
+          description: 可选的请求追踪 ID；若缺失或格式不合法，服务端会生成新的请求 ID。
+          schema:
+            type: string
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$"
       responses:
         "200":
           description: 课程列表
+          headers:
+            X-Request-Id:
+              description: 本次请求的追踪 ID。
+              schema:
+                type: string
+                minLength: 1
           content:
             application/json:
               schema:
-                type: object
-                required: [data]
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Course"
+                $ref: "#/components/schemas/CourseListResponse"
+        "400":
+          description: 关键词不符合输入规则，例如重复传参或超过长度上限。
+          headers:
+            X-Request-Id:
+              description: 本次请求的追踪 ID。
+              schema:
+                type: string
+                minLength: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 课程查询发生未预期错误。
+          headers:
+            X-Request-Id:
+              description: 本次请求的追踪 ID。
+              schema:
+                type: string
+                minLength: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       operationId: createCourse
       summary: 创建课程
+      security: []
+      x-spec:
+        file: specs/004-course-create-http-boundary.md
+        acceptanceCriteria: [AC-01, AC-02, AC-03, AC-04]
+      parameters:
+        - name: X-Request-Id
+          in: header
+          required: false
+          description: 可选的请求追踪 ID；若缺失或格式不合法，服务端会生成新的请求 ID。
+          schema:
+            type: string
+            maxLength: 100
+            pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$"
       requestBody:
         required: true
         content:
@@ -45,16 +103,40 @@ paths:
       responses:
         "200":
           description: 创建成功
+          headers:
+            X-Request-Id:
+              description: 本次请求的追踪 ID。
+              schema:
+                type: string
+                minLength: 1
           content:
             application/json:
               schema:
-                type: object
-                required: [data]
-                properties:
-                  data:
-                    $ref: "#/components/schemas/Course"
+                $ref: "#/components/schemas/CourseMutationResponse"
         "400":
           description: 请求体不符合课程数据规则
+          headers:
+            X-Request-Id:
+              description: 本次请求的追踪 ID。
+              schema:
+                type: string
+                minLength: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: 课程创建发生未预期错误。
+          headers:
+            X-Request-Id:
+              description: 本次请求的追踪 ID。
+              schema:
+                type: string
+                minLength: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     Health:
@@ -81,6 +163,22 @@ components:
         createdAt:
           type: string
           format: date-time
+    CourseListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Course"
+    CourseMutationResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Course"
     CreateCourse:
       type: object
       additionalProperties: false
@@ -94,3 +192,36 @@ components:
           type: string
           minLength: 2
           maxLength: 500
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required: [field, reason]
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+    ErrorBody:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [VALIDATION_FAILED, INTERNAL_ERROR]
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorDetail"
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error, requestId]
+      properties:
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+        requestId:
+          type: string
+          minLength: 1
