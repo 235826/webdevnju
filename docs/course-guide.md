@@ -5,7 +5,7 @@
 1. 运行项目，观察前后端日志和浏览器网络请求。
 2. 阅读 `specs/001-course-catalog.md`，把验收标准对应到代码。
 3. 阅读 [`specs/003-course-keyword-search.md`](../specs/003-course-keyword-search.md) 与 [ADR-002](./adr/002-course-search-responsibility-boundary.md)，比较 Spec 与 ADR 各自保留的信息。
-4. 阅读 [Agent Skills：find-courses](./skills/find-courses.md)，用已有 `GET /api/courses` 演示 Skill 指引层（可选 Agent 侧过滤）。
+4. 阅读 [Agent Skills：manage-courses](./skills/manage-courses.md)，用已有 `GET /api/courses` 和 `POST /api/courses` 演示统一的课程管理 Skill 如何路由只读与副作用操作。
 5. 修改一个页面组件，并通过 ESLint 和构建检查。
 6. 新增一个 API 字段，同时修改 OpenAPI 契约、后端和前端。
 7. 完成创建课程表单，为校验逻辑补充测试。

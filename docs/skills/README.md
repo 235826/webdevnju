@@ -4,11 +4,11 @@
 
 当前示例：
 
-| Skill                             | 对应 API           | 说明                                                |
-| --------------------------------- | ------------------ | --------------------------------------------------- |
-| [find-courses](./find-courses.md) | `GET /api/courses` | 列课程；需要时通过可选 `keyword` Query 走服务端搜索 |
+| Skill                                 | 对应 API                                | 说明                                               |
+| ------------------------------------- | --------------------------------------- | -------------------------------------------------- |
+| [manage-courses](./manage-courses.md) | `GET /api/courses`、`POST /api/courses` | 统一路由课程查询、搜索和创建，并隔离副作用操作约束 |
 
-可执行副本位于 [`.cursor/skills/find-courses/SKILL.md`](../../.cursor/skills/find-courses/SKILL.md)，供 Cursor Agent 按 description 发现并加载。
+可执行副本位于 `.cursor/skills/` 和 `.github/skills/` 下，供对应 Agent 按 description 发现并加载。后续课程管理 API 应继续扩展 `manage-courses`，而不是为每个 CRUD 动作新增顶层 Skill。
 
 ## 与 MCP 的关系
 
