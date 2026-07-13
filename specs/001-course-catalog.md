@@ -58,7 +58,7 @@
 | AC-02 | API Test           | `npm run test --workspace backend`   | 2026-07-12 通过；断言 SQLite 乱序数据按 `id` 返回       |
 | AC-03 | Service / API Test | `npm run test --workspace backend`   | 2026-07-12 通过；断言首次写入三条且重启不重复           |
 | AC-04 | 组件或浏览器测试   | 延迟课程请求并观察课程区域           | 待补充自动测试                                          |
-| AC-05 | 组件或浏览器测试   | 返回非空课程列表并检查卡片与状态     | 待补充自动测试                                          |
+| AC-05 | Playwright E2E     | `npm run test:e2e`                   | 验证真实前后端返回三条课程并在首页按顺序展示            |
 | AC-06 | 组件或浏览器测试   | `npm run test --workspace frontend`  | 已实现显式空状态并有源码回归断言；仍待组件级响应模拟    |
 | AC-07 | 组件或浏览器测试   | 让任一请求返回非 2xx 并检查错误反馈  | 待补充自动测试                                          |
 | AC-08 | 人工可访问性验收   | 仅使用键盘遍历首页并检查语义树与焦点 | 待执行并记录                                            |
@@ -68,7 +68,7 @@
 - `npm run check`：2026-07-12 通过（格式、前后端 lint/typecheck、15 个测试及构建）；前端组件与人工验收仍需单独记录。
 - `npm run test --workspace backend`：2026-07-12 通过（13 个测试），覆盖 AC-01、AC-02、AC-03，并补充课程空结果、创建边界和无效输入回归。
 - 人工验收：待执行。
-- 已知限制：AC-04 至 AC-07 仍缺少组件级响应模拟测试；OpenAPI 与运行时输入语义的其他差异见 `docs/architecture-review.md`。
+- 已知限制：AC-04、AC-06 与 AC-07 仍缺少组件级响应模拟测试；OpenAPI 与运行时输入语义的其他差异见 `docs/architecture-review.md`。
 
 ## 后续练习
 

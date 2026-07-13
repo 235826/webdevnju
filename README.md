@@ -7,7 +7,7 @@
 - 前端：Next.js 16、React 19、TypeScript、Tailwind CSS 4
 - 后端：Midway.js 4、Koa、TypeScript
 - 数据库：Node.js 内置 SQLite
-- 工程化：npm workspaces、Prettier、ESLint、GitHub Actions、Docker Compose
+- 工程化：npm workspaces、Prettier、ESLint、Playwright、GitHub Actions、Docker Compose
 
 ## 快速开始
 
@@ -33,12 +33,19 @@ npm run dev
 npm run dev           # 同时启动前端与后端
 npm run build         # 构建全部工作区
 npm run test          # 运行全部测试
+npm run test:e2e      # 启动前后端并运行 Playwright 端到端测试
 npm run lint          # 运行静态检查
 npm run typecheck     # 检查全部工作区的 TypeScript 类型
 npm run format        # 格式化代码与文档
 npm run format:check  # 检查代码与文档格式，不写入文件
 npm run check         # 执行格式、lint、类型、测试和构建检查
 npm run check:env     # 检查本地 Node/npm 环境
+```
+
+首次运行端到端测试前，需要安装 Chromium：
+
+```bash
+npx playwright install chromium
 ```
 
 也可以只操作一个工作区：

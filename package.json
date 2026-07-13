@@ -11,11 +11,12 @@
     "dev": "concurrently --kill-others-on-fail --names frontend,backend --prefix-colors cyan,magenta \"npm run dev --workspace frontend\" \"npm run dev --workspace backend\"",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
+    "test:e2e": "playwright test",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run test:e2e",
     "check:env": "node scripts/check-env.mjs"
   },
   "engines": {
@@ -23,6 +24,7 @@
     "npm": ">=11"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "concurrently": "^9.2.1",
     "prettier": "^3.6.2"
   }

@@ -17,6 +17,7 @@
 
 # Frontend: Next.js, Tailwind CSS, and hosting output
 /frontend/.next/
+/frontend/.next-e2e/
 /frontend/out/
 /frontend/build/
 /frontend/.vercel/
