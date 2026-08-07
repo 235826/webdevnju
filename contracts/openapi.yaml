@@ -1,169 +1,1608 @@
 openapi: 3.1.0
 info:
-  title: Web Development Course API
-  version: 0.2.0
+  title: Football Match Interaction Platform API
+  version: 1.0.0
 servers:
   - url: http://localhost:7001
+tags:
+  - name: Health
+  - name: Auth
+  - name: Competitions
+  - name: Stages
+  - name: Teams
+  - name: Matches
+  - name: Predictions
+  - name: Favorites
+  - name: Comments
+  - name: Admin
 paths:
   /api/health:
     get:
+      tags: [Health]
       operationId: getHealth
       summary: 检查 API 状态
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
       responses:
         "200":
           description: API 正常
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
-  /api/courses:
-    get:
-      operationId: listCourses
-      summary: 获取课程列表
-      security: []
-      x-spec:
-        file: specs/003-course-keyword-search.md
-        acceptanceCriteria:
-          [AC-01, AC-02, AC-03, AC-04, AC-05, AC-06, AC-07, AC-08]
-      parameters:
-        - name: keyword
-          in: query
-          required: false
-          description: 去除首尾空白后的课程关键词；为空时等同于省略。按标题或简介做包含匹配，ASCII 字母不区分大小写。
-          schema:
-            type: string
-            maxLength: 80
-        - name: X-Request-Id
-          in: header
-          required: false
-          description: 可选的请求追踪 ID；若缺失或格式不合法，服务端会生成新的请求 ID。
-          schema:
-            type: string
-            maxLength: 100
-            pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$"
-      responses:
-        "200":
-          description: 课程列表
-          headers:
-            X-Request-Id:
-              description: 本次请求的追踪 ID。
-              schema:
-                type: string
-                minLength: 1
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CourseListResponse"
-        "400":
-          description: 关键词不符合输入规则，例如重复传参或超过长度上限。
-          headers:
-            X-Request-Id:
-              description: 本次请求的追踪 ID。
-              schema:
-                type: string
-                minLength: 1
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         "500":
-          description: 课程查询发生未预期错误。
-          headers:
-            X-Request-Id:
-              description: 本次请求的追踪 ID。
-              schema:
-                type: string
-                minLength: 1
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/register:
     post:
-      operationId: createCourse
-      summary: 创建课程
+      tags: [Auth]
+      operationId: registerUser
+      summary: 注册普通用户
       security: []
       x-spec:
-        file: specs/004-course-create-http-boundary.md
-        acceptanceCriteria: [AC-01, AC-02, AC-03, AC-04]
+        file: specs/001-auth-and-user-identity.md
+        acceptanceCriteria: [AC-01, AC-06]
       parameters:
-        - name: X-Request-Id
-          in: header
-          required: false
-          description: 可选的请求追踪 ID；若缺失或格式不合法，服务端会生成新的请求 ID。
-          schema:
-            type: string
-            maxLength: 100
-            pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$"
+        - $ref: "#/components/parameters/RequestIdHeader"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateCourse"
+              $ref: "#/components/schemas/RegisterRequest"
       responses:
-        "200":
-          description: 创建成功
+        "201":
+          description: 注册成功
           headers:
             X-Request-Id:
-              description: 本次请求的追踪 ID。
-              schema:
-                type: string
-                minLength: 1
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CourseMutationResponse"
+                $ref: "#/components/schemas/AuthResponse"
         "400":
-          description: 请求体不符合课程数据规则
+          $ref: "#/components/responses/ValidationFailed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      operationId: loginUser
+      summary: 用户登录
+      security: []
+      x-spec:
+        file: specs/001-auth-and-user-identity.md
+        acceptanceCriteria: [AC-02, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 登录成功
           headers:
             X-Request-Id:
-              description: 本次请求的追踪 ID。
+              $ref: "#/components/headers/RequestId"
+            Set-Cookie:
+              description: 服务端设置的会话 Cookie。
               schema:
                 type: string
-                minLength: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutUser
+      summary: 用户登出
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/001-auth-and-user-identity.md
+        acceptanceCriteria: [AC-02]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "204":
+          description: 登出成功，无响应体。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: 获取当前用户
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/001-auth-and-user-identity.md
+        acceptanceCriteria: [AC-02, AC-03, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: 当前用户
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/competitions:
+    get:
+      tags: [Competitions]
+      operationId: listCompetitions
+      summary: 获取赛事列表
+      security: []
+      x-spec:
+        file: specs/002-competition-stage-match.md
+        acceptanceCriteria: [AC-01, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: 赛事列表，按创建顺序升序返回；无数据时 `data` 为空数组。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/competitions/{competitionId}:
+    get:
+      tags: [Competitions]
+      operationId: getCompetition
+      summary: 获取赛事详情
+      security: []
+      x-spec:
+        file: specs/002-competition-stage-match.md
+        acceptanceCriteria: [AC-02, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "200":
+          description: 赛事详情
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/stages/{stageId}:
+    get:
+      tags: [Stages]
+      operationId: getStage
+      summary: 获取阶段详情
+      security: []
+      x-spec:
+        file: specs/002-competition-stage-match.md
+        acceptanceCriteria: [AC-02, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: 阶段详情
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/stages/{stageId}/standings:
+    get:
+      tags: [Stages]
+      operationId: getStageStandings
+      summary: 获取小组赛或联赛积分榜
+      security: []
+      x-spec:
+        file: specs/006-standings-and-bracket.md
+        acceptanceCriteria: [AC-01, AC-02, AC-03, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: 积分榜；GROUP 按分组返回，LEAGUE 返回单个无分组榜。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StandingsResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: 当前阶段类型不支持积分榜，例如 KNOCKOUT。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
-          description: 课程创建发生未预期错误。
+          $ref: "#/components/responses/InternalError"
+
+  /api/stages/{stageId}/bracket:
+    get:
+      tags: [Stages]
+      operationId: getStageBracket
+      summary: 获取淘汰赛图
+      security: []
+      x-spec:
+        file: specs/006-standings-and-bracket.md
+        acceptanceCriteria: [AC-04, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: 淘汰赛对阵图
           headers:
             X-Request-Id:
-              description: 本次请求的追踪 ID。
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
               schema:
-                type: string
-                minLength: 1
+                $ref: "#/components/schemas/BracketResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: 当前阶段类型不支持淘汰赛图，例如 GROUP 或 LEAGUE。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/teams:
+    get:
+      tags: [Teams]
+      operationId: listTeams
+      summary: 获取球队列表
+      security: []
+      x-spec:
+        file: specs/003-teams.md
+        acceptanceCriteria: [AC-01, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: 球队列表，按名称升序和 ID 升序返回；无数据时 `data` 为空数组。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamListResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/teams/{teamId}:
+    get:
+      tags: [Teams]
+      operationId: getTeam
+      summary: 获取球队详情
+      security: []
+      x-spec:
+        file: specs/003-teams.md
+        acceptanceCriteria: [AC-02, AC-04]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/TeamId"
+      responses:
+        "200":
+          description: 球队详情，只包含本地权威资料。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/teams/{teamId}/external-profile:
+    get:
+      tags: [Teams]
+      operationId: getTeamExternalProfile
+      summary: 获取 OpenLigaDB 球队补充资料
+      security: []
+      x-spec:
+        file: specs/009-real-team-api-integration.md
+        acceptanceCriteria: [AC-01, AC-02, AC-03, AC-04]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/TeamId"
+      responses:
+        "200":
+          description: 外部资料查询结果；失败或无匹配也返回 200，并通过 `status` 区分降级状态。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExternalTeamProfileResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/matches:
+    get:
+      tags: [Matches]
+      operationId: listMatches
+      summary: 获取比赛列表
+      security: []
+      x-spec:
+        file: specs/002-competition-stage-match.md
+        acceptanceCriteria: [AC-03, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: competitionId
+          in: query
+          required: false
+          description: 按赛事筛选比赛。
+          schema:
+            type: integer
+            minimum: 1
+        - name: stageId
+          in: query
+          required: false
+          description: 按阶段筛选比赛。
+          schema:
+            type: integer
+            minimum: 1
+        - name: status
+          in: query
+          required: false
+          description: 按比赛状态筛选。
+          schema:
+            $ref: "#/components/schemas/MatchStatus"
+      responses:
+        "200":
+          description: 比赛列表，默认按开赛时间升序和 ID 升序返回；无匹配时 `data` 为空数组。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchListResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/matches/{matchId}:
+    get:
+      tags: [Matches]
+      operationId: getMatch
+      summary: 获取比赛详情
+      security: []
+      x-spec:
+        file: specs/002-competition-stage-match.md
+        acceptanceCriteria: [AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: 比赛详情，包含赛事、阶段、球队、状态和最新比赛结果。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/matches/{matchId}/prediction:
+    get:
+      tags: [Predictions]
+      operationId: getMyMatchPrediction
+      summary: 获取当前用户对单场比赛的有效预测
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/004-score-predictions.md
+        acceptanceCriteria: [AC-01, AC-02, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: 当前用户的有效预测；没有预测时 `data` 为 null。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NullablePredictionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      tags: [Predictions]
+      operationId: updateMyMatchPrediction
+      summary: 修改当前用户对单场比赛的比分预测
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/004-score-predictions.md
+        acceptanceCriteria: [AC-02, AC-04, AC-05, AC-07]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        $ref: "#/components/requestBodies/PredictionRequest"
+      responses:
+        "200":
+          description: 修改成功，新预测成为唯一有效预测。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: 比赛已经开始，禁止修改预测。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/matches/{matchId}/predictions:
+    post:
+      tags: [Predictions]
+      operationId: createMyMatchPrediction
+      summary: 创建当前用户对单场比赛的比分预测
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/004-score-predictions.md
+        acceptanceCriteria: [AC-01, AC-03, AC-05, AC-06, AC-07]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        $ref: "#/components/requestBodies/PredictionRequest"
+      responses:
+        "201":
+          description: 创建成功，成为该用户该比赛的唯一有效预测。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+            Location:
+              description: 当前用户该比赛有效预测资源路径。
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: 比赛已经开始，或并发写入导致预测状态冲突。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/users/me/predictions:
+    get:
+      tags: [Predictions]
+      operationId: listMyPredictions
+      summary: 获取当前用户的有效预测列表
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/004-score-predictions.md
+        acceptanceCriteria: [AC-01, AC-02, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: 当前用户有效预测列表，按创建时间倒序和 ID 倒序返回。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PredictionListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/matches/{matchId}/favorite:
+    post:
+      tags: [Favorites]
+      operationId: favoriteMatch
+      summary: 收藏比赛
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/007-favorites.md
+        acceptanceCriteria: [AC-01, AC-03, AC-04]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: 收藏成功；重复收藏返回当前有效收藏，不产生重复项。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoriteResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Favorites]
+      operationId: unfavoriteMatch
+      summary: 取消收藏比赛
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/007-favorites.md
+        acceptanceCriteria: [AC-02, AC-04]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "204":
+          description: 取消收藏成功；原本未收藏也视为成功。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/users/me/favorites:
+    get:
+      tags: [Favorites]
+      operationId: listMyFavorites
+      summary: 获取我的收藏比赛
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/007-favorites.md
+        acceptanceCriteria: [AC-01, AC-02, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      responses:
+        "200":
+          description: 我的收藏列表，按收藏时间倒序和 ID 倒序返回；无收藏时 `data` 为空数组。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoriteListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/matches/{matchId}/comments:
+    get:
+      tags: [Comments]
+      operationId: listMatchComments
+      summary: 分页获取比赛评论
+      security: []
+      x-spec:
+        file: specs/008-comments-and-discussion.md
+        acceptanceCriteria: [AC-01, AC-02, AC-03]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: 评论分页列表，默认按创建时间升序和 ID 升序返回；超出末页返回空数组。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentPageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      tags: [Comments]
+      operationId: createMatchComment
+      summary: 发表评论
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/008-comments-and-discussion.md
+        acceptanceCriteria: [AC-01, AC-02, AC-07]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentWriteRequest"
+      responses:
+        "201":
+          description: 发布成功；评论默认可见并进入待审核状态。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+            Location:
+              description: 新评论资源路径。
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/comments/{commentId}:
+    put:
+      tags: [Comments]
+      operationId: updateComment
+      summary: 编辑自己的评论
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/008-comments-and-discussion.md
+        acceptanceCriteria: [AC-04, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/CommentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentWriteRequest"
+      responses:
+        "200":
+          description: 编辑成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Comments]
+      operationId: deleteComment
+      summary: 删除自己的评论
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/008-comments-and-discussion.md
+        acceptanceCriteria: [AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "204":
+          description: 删除成功，无响应体。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/comments/{commentId}/moderation:
+    put:
+      tags: [Admin]
+      operationId: moderateComment
+      summary: 审核评论
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/008-comments-and-discussion.md
+        acceptanceCriteria: [AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/CommentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModerateCommentRequest"
+      responses:
+        "200":
+          description: 审核状态已更新
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/matches/{matchId}/result:
+    put:
+      tags: [Admin]
+      operationId: updateMatchResult
+      summary: 录入或修改比赛结果
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/005-match-results.md
+        acceptanceCriteria: [AC-01, AC-02, AC-03, AC-04, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchResultRequest"
+      responses:
+        "200":
+          description: 比赛结果已保存，返回更新后的比赛。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/competitions:
+    post:
+      tags: [Admin]
+      operationId: createCompetition
+      summary: 创建赛事
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-01, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        $ref: "#/components/requestBodies/CompetitionWriteRequest"
+      responses:
+        "201":
+          description: 创建成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/competitions/{competitionId}:
+    put:
+      tags: [Admin]
+      operationId: updateCompetition
+      summary: 编辑赛事
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-02, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        $ref: "#/components/requestBodies/CompetitionWriteRequest"
+      responses:
+        "200":
+          description: 编辑成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Admin]
+      operationId: deleteCompetition
+      summary: 删除赛事
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-03, AC-04, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/CompetitionId"
+      responses:
+        "204":
+          description: 删除成功，无响应体。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/stages:
+    post:
+      tags: [Admin]
+      operationId: createStage
+      summary: 创建赛事阶段
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-01, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        $ref: "#/components/requestBodies/StageWriteRequest"
+      responses:
+        "201":
+          description: 创建成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/stages/{stageId}:
+    put:
+      tags: [Admin]
+      operationId: updateStage
+      summary: 编辑赛事阶段
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-02, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        $ref: "#/components/requestBodies/StageWriteRequest"
+      responses:
+        "200":
+          description: 编辑成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Admin]
+      operationId: deleteStage
+      summary: 删除赛事阶段
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-03, AC-04, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "204":
+          description: 删除成功，无响应体。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/teams:
+    post:
+      tags: [Admin]
+      operationId: createTeam
+      summary: 创建球队
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-01, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        $ref: "#/components/requestBodies/TeamWriteRequest"
+      responses:
+        "201":
+          description: 创建成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/teams/{teamId}:
+    put:
+      tags: [Admin]
+      operationId: updateTeam
+      summary: 编辑球队
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-02, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/TeamId"
+      requestBody:
+        $ref: "#/components/requestBodies/TeamWriteRequest"
+      responses:
+        "200":
+          description: 编辑成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Admin]
+      operationId: deleteTeam
+      summary: 删除球队
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-03, AC-04, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/TeamId"
+      responses:
+        "204":
+          description: 删除成功，无响应体。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/matches:
+    post:
+      tags: [Admin]
+      operationId: createMatch
+      summary: 创建比赛
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-01, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+      requestBody:
+        $ref: "#/components/requestBodies/MatchWriteRequest"
+      responses:
+        "201":
+          description: 创建成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/admin/matches/{matchId}:
+    put:
+      tags: [Admin]
+      operationId: updateMatch
+      summary: 编辑比赛
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-02, AC-04, AC-05, AC-06]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        $ref: "#/components/requestBodies/MatchWriteRequest"
+      responses:
+        "200":
+          description: 编辑成功
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Admin]
+      operationId: deleteMatch
+      summary: 删除比赛
+      security:
+        - cookieAuth: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-03, AC-04, AC-05]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "204":
+          description: 删除成功，无响应体。
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sid
+      description: 服务端会话 Cookie。凭据不得放入 Query、响应体、错误详情或日志。
+
+  parameters:
+    RequestIdHeader:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: 可选请求追踪 ID；缺失或格式不合法时由服务端生成。
+      schema:
+        type: string
+        maxLength: 100
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$"
+    CompetitionId:
+      name: competitionId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    StageId:
+      name: stageId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    TeamId:
+      name: teamId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    MatchId:
+      name: matchId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    CommentId:
+      name: commentId
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    Page:
+      name: page
+      in: query
+      required: false
+      description: 从 1 开始的页码，默认 1。
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: 每页数量，默认 20，最大 100。
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  headers:
+    RequestId:
+      description: 本次请求的追踪 ID。
+      schema:
+        type: string
+        minLength: 1
+
+  requestBodies:
+    CompetitionWriteRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CompetitionWriteRequest"
+    StageWriteRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StageWriteRequest"
+    TeamWriteRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/TeamWriteRequest"
+    MatchWriteRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MatchWriteRequest"
+    PredictionRequest:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ScoreLineRequest"
+
+  responses:
+    ValidationFailed:
+      description: 请求输入不符合契约或业务校验规则。
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: 未认证或会话无效。
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: 已认证但没有权限执行该操作。
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: 请求的资源不存在。
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: 请求与当前资源状态冲突。
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: 服务端发生未预期错误；响应不得包含 SQL、堆栈、密钥或内部路径。
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     Health:
       type: object
+      additionalProperties: false
       required: [status, service, timestamp]
       properties:
         status:
           const: ok
         service:
           type: string
+          const: football-platform-api
         timestamp:
           type: string
           format: date-time
-    Course:
+
+    Role:
+      type: string
+      enum: [USER, ADMIN]
+    StageType:
+      type: string
+      enum: [GROUP, LEAGUE, KNOCKOUT]
+    MatchStatus:
+      type: string
+      enum: [SCHEDULED, LIVE, FINISHED]
+      description: 分别表示未开始、进行中、已结束。
+    CommentModerationStatus:
+      type: string
+      enum: [PENDING, APPROVED, REJECTED]
+      description: 先发后审下，新评论默认 PENDING 且可见。
+    ExternalProfileStatus:
+      type: string
+      enum: [AVAILABLE, UNAVAILABLE, NO_MATCH]
+
+    User:
       type: object
-      required: [id, title, description, createdAt]
+      additionalProperties: false
+      required: [id, username, role, createdAt]
       properties:
         id:
           type: integer
-        title:
+          minimum: 1
+        username:
           type: string
-        description:
-          type: string
+          minLength: 3
+          maxLength: 40
+        role:
+          $ref: "#/components/schemas/Role"
         createdAt:
           type: string
           format: date-time
-    CourseListResponse:
+
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 40
+          pattern: "^[A-Za-z0-9_]+$"
+          description: 服务端去除首尾空白后校验，公开注册只能创建 USER。
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 40
+          description: 服务端去除首尾空白后匹配账号。
+        password:
+          type: string
+          minLength: 1
+          maxLength: 72
+    AuthResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+    UserResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/User"
+
+    Competition:
+      type: object
+      additionalProperties: false
+      required: [id, name, description, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        description:
+          type: string
+          minLength: 0
+          maxLength: 500
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CompetitionWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [name, description]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: 服务端去除首尾空白后校验。
+        description:
+          type: string
+          minLength: 0
+          maxLength: 500
+          description: 服务端去除首尾空白后保存。
+    CompetitionResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Competition"
+    CompetitionListResponse:
       type: object
       additionalProperties: false
       required: [data]
@@ -171,27 +1610,652 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/Course"
-    CourseMutationResponse:
+            $ref: "#/components/schemas/Competition"
+
+    Stage:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          competitionId,
+          name,
+          type,
+          groupName,
+          sortOrder,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        competitionId:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        type:
+          $ref: "#/components/schemas/StageType"
+        groupName:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 40
+          description: GROUP 阶段可用于区分小组；LEAGUE 和 KNOCKOUT 通常为 null。
+        sortOrder:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StageWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [competitionId, name, type, groupName, sortOrder]
+      properties:
+        competitionId:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+          description: 服务端去除首尾空白后校验。
+        type:
+          $ref: "#/components/schemas/StageType"
+        groupName:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 40
+        sortOrder:
+          type: integer
+          minimum: 0
+    StageResponse:
       type: object
       additionalProperties: false
       required: [data]
       properties:
         data:
-          $ref: "#/components/schemas/Course"
-    CreateCourse:
+          $ref: "#/components/schemas/Stage"
+
+    Team:
       type: object
       additionalProperties: false
-      required: [title, description]
+      required:
+        [id, name, shortName, logoUrl, openLigaDbTeamId, createdAt, updatedAt]
       properties:
-        title:
+        id:
+          type: integer
+          minimum: 1
+        name:
           type: string
           minLength: 2
           maxLength: 80
-        description:
+        shortName:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 30
+        logoUrl:
+          type:
+            - string
+            - "null"
+          format: uri
+          maxLength: 500
+        openLigaDbTeamId:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TeamWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [name, shortName, logoUrl, openLigaDbTeamId]
+      properties:
+        name:
           type: string
           minLength: 2
+          maxLength: 80
+          description: 服务端去除首尾空白后校验。
+        shortName:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 30
+        logoUrl:
+          type:
+            - string
+            - "null"
+          format: uri
           maxLength: 500
+        openLigaDbTeamId:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+    TeamResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Team"
+    TeamListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Team"
+
+    ExternalTeamProfile:
+      type: object
+      additionalProperties: false
+      required: [provider, providerTeamId, name, shortName, logoUrl, websiteUrl]
+      properties:
+        provider:
+          type: string
+          const: OpenLigaDB
+        providerTeamId:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+        shortName:
+          type:
+            - string
+            - "null"
+        logoUrl:
+          type:
+            - string
+            - "null"
+          format: uri
+        websiteUrl:
+          type:
+            - string
+            - "null"
+          format: uri
+    ExternalTeamProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [status, data, message]
+      properties:
+        status:
+          $ref: "#/components/schemas/ExternalProfileStatus"
+        data:
+          anyOf:
+            - $ref: "#/components/schemas/ExternalTeamProfile"
+            - type: "null"
+        message:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+
+    MatchResult:
+      type: object
+      additionalProperties: false
+      required: [homeScore, awayScore, updatedAt]
+      properties:
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+    Match:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          competition,
+          stage,
+          homeTeam,
+          awayTeam,
+          startsAt,
+          status,
+          groupName,
+          knockoutRound,
+          bracketPosition,
+          result,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        competition:
+          $ref: "#/components/schemas/Competition"
+        stage:
+          $ref: "#/components/schemas/Stage"
+        homeTeam:
+          $ref: "#/components/schemas/Team"
+        awayTeam:
+          $ref: "#/components/schemas/Team"
+        startsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/MatchStatus"
+        groupName:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 40
+        knockoutRound:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 40
+        bracketPosition:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+        result:
+          anyOf:
+            - $ref: "#/components/schemas/MatchResult"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MatchWriteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          stageId,
+          homeTeamId,
+          awayTeamId,
+          startsAt,
+          status,
+          groupName,
+          knockoutRound,
+          bracketPosition,
+        ]
+      properties:
+        stageId:
+          type: integer
+          minimum: 1
+        homeTeamId:
+          type: integer
+          minimum: 1
+        awayTeamId:
+          type: integer
+          minimum: 1
+        startsAt:
+          type: string
+          format: date-time
+        status:
+          $ref: "#/components/schemas/MatchStatus"
+        groupName:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 40
+        knockoutRound:
+          type:
+            - string
+            - "null"
+          minLength: 1
+          maxLength: 40
+        bracketPosition:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+    MatchResultRequest:
+      type: object
+      additionalProperties: false
+      required: [homeScore, awayScore]
+      properties:
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+    MatchResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Match"
+    MatchListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+
+    ScoreLineRequest:
+      type: object
+      additionalProperties: false
+      required: [homeScore, awayScore]
+      properties:
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+    Prediction:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          matchId,
+          userId,
+          homeScore,
+          awayScore,
+          isActive,
+          createdAt,
+          supersededAt,
+        ]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        matchId:
+          type: integer
+          minimum: 1
+        userId:
+          type: integer
+          minimum: 1
+        homeScore:
+          type: integer
+          minimum: 0
+        awayScore:
+          type: integer
+          minimum: 0
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        supersededAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+    PredictionResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Prediction"
+    NullablePredictionResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          anyOf:
+            - $ref: "#/components/schemas/Prediction"
+            - type: "null"
+    PredictionListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Prediction"
+
+    Favorite:
+      type: object
+      additionalProperties: false
+      required: [id, match, createdAt]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        match:
+          $ref: "#/components/schemas/Match"
+        createdAt:
+          type: string
+          format: date-time
+    FavoriteResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Favorite"
+    FavoriteListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Favorite"
+
+    Comment:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          matchId,
+          author,
+          content,
+          moderationStatus,
+          visible,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        matchId:
+          type: integer
+          minimum: 1
+        author:
+          $ref: "#/components/schemas/User"
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        moderationStatus:
+          $ref: "#/components/schemas/CommentModerationStatus"
+        visible:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CommentWriteRequest:
+      type: object
+      additionalProperties: false
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: 服务端去除首尾空白后校验。
+    ModerateCommentRequest:
+      type: object
+      additionalProperties: false
+      required: [moderationStatus]
+      properties:
+        moderationStatus:
+          $ref: "#/components/schemas/CommentModerationStatus"
+    CommentResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/Comment"
+    CommentPageResponse:
+      type: object
+      additionalProperties: false
+      required: [data, pagination]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+    Pagination:
+      type: object
+      additionalProperties: false
+      required: [page, pageSize, total]
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+
+    StandingGroup:
+      type: object
+      additionalProperties: false
+      required: [groupName, rows]
+      properties:
+        groupName:
+          type:
+            - string
+            - "null"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingRow"
+    StandingRow:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          rank,
+          team,
+          played,
+          won,
+          drawn,
+          lost,
+          goalsFor,
+          goalsAgainst,
+          goalDifference,
+          points,
+        ]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        team:
+          $ref: "#/components/schemas/Team"
+        played:
+          type: integer
+          minimum: 0
+        won:
+          type: integer
+          minimum: 0
+        drawn:
+          type: integer
+          minimum: 0
+        lost:
+          type: integer
+          minimum: 0
+        goalsFor:
+          type: integer
+          minimum: 0
+        goalsAgainst:
+          type: integer
+          minimum: 0
+        goalDifference:
+          type: integer
+        points:
+          type: integer
+          minimum: 0
+    StandingsResponse:
+      type: object
+      additionalProperties: false
+      required: [stageId, stageType, groups]
+      properties:
+        stageId:
+          type: integer
+          minimum: 1
+        stageType:
+          $ref: "#/components/schemas/StageType"
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/StandingGroup"
+
+    BracketRound:
+      type: object
+      additionalProperties: false
+      required: [round, matches]
+      properties:
+        round:
+          type: string
+          minLength: 1
+          maxLength: 40
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+    BracketResponse:
+      type: object
+      additionalProperties: false
+      required: [stageId, rounds]
+      properties:
+        stageId:
+          type: integer
+          minimum: 1
+        rounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/BracketRound"
+
     ErrorDetail:
       type: object
       additionalProperties: false
@@ -199,8 +2263,10 @@ components:
       properties:
         field:
           type: string
+          minLength: 1
         reason:
           type: string
+          minLength: 1
     ErrorBody:
       type: object
       additionalProperties: false
@@ -208,9 +2274,21 @@ components:
       properties:
         code:
           type: string
-          enum: [VALIDATION_FAILED, INTERNAL_ERROR]
+          enum:
+            [
+              VALIDATION_FAILED,
+              UNAUTHORIZED,
+              FORBIDDEN,
+              NOT_FOUND,
+              CONFLICT,
+              PREDICTION_LOCKED,
+              UNSUPPORTED_STAGE_TYPE,
+              INTERNAL_ERROR,
+            ]
         message:
           type: string
+          minLength: 1
+          maxLength: 200
         details:
           type: array
           items:

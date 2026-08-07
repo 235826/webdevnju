@@ -2,9 +2,9 @@
 
 本目录保存前端、后端、测试和 Agent 共同依赖的 HTTP API 契约。规范中的“必须”是合并门槛，“建议”允许在评审中说明理由后例外。
 
-## 课程明确原则
+## 项目明确原则
 
-以下原则来自 `Course_WebDevelopment` 的 `web-frontend.md` 与 `web-backend.md`：
+以下原则适用于足球赛事信息与互动预测平台：
 
 - 信息流是 `specs/ → contracts/ → frontend/ ↔ backend/ → test / check`。Spec 先说明目标、边界和可观察的验收标准，契约再把跨端行为机器化。
 - REST 路径表达资源，HTTP Method 表达动作，状态码表达结果；客户端应能稳定区分成功、空结果和失败。
@@ -64,13 +64,13 @@ operation 级追溯统一使用以下结构，验收标准 ID 一经引用不得
 
 ```yaml
 x-spec:
-  file: specs/001-course-catalog.md
+  file: specs/004-score-predictions.md
   acceptanceCriteria: [AC-01, AC-02]
 ```
 
 ### REST 与状态码
 
-- Path 使用小写复数名词，例如 `/api/courses`、`/api/courses/{courseId}`；不要使用 `/createCourse` 一类动词路径。
+- Path 使用小写复数名词，例如 `/api/matches`、`/api/teams/{teamId}`；不要使用 `/createMatch` 一类动词路径。
 - `GET` 只读取，`POST` 创建，`PUT` 完整替换，`PATCH` 局部更新，`DELETE` 删除。语义不是标准 CRUD 时，在 Spec 和 operation description 中说明。
 - 创建成功默认返回 `201`，并在适用时返回 `Location`；查询/更新成功返回 `200`；成功且无响应体返回 `204`。
 - 常用失败语义：`400` 请求不符合输入规则，`401` 未认证，`403` 已认证但无权限，`404` 资源不存在，`409` 状态冲突，`500` 未预期的服务端错误。不要用 `200` 包装业务失败。

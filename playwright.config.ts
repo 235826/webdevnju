@@ -21,7 +21,7 @@ export default defineConfig({
         BACKEND_PORT: String(backendPort),
         DATABASE_PATH: join(
           tmpdir(),
-          `course-demo-playwright-${process.pid}.sqlite`,
+          `football-platform-playwright-${process.pid}.sqlite`,
         ),
       },
       timeout: 120_000,

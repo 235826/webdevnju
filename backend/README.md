@@ -1,18 +1,21 @@
 # Backend
 
-Midway.js + Koa API，使用 Node.js 24 内置的 `node:sqlite` 保存数据。
+Midway.js + Koa API。当前清理阶段只保留最小健康检查接口，后续会按 `contracts/openapi.yaml` 实现足球赛事平台 API。
 
 ```bash
 npm run dev --workspace backend
 ```
 
-默认端口为 `7001`，数据库首次启动时会自动创建并写入三条课程示例数据。
+默认端口为 `7001`。健康检查：
 
-开发新的后端行为前，可先阅读 [Spec 003：课程关键词搜索](../specs/003-course-keyword-search.md) 与 [ADR-002](../docs/adr/002-course-search-responsibility-boundary.md)，了解如何把可验收行为与长期技术决策分开记录。二者目前均为提议中，不表示搜索 API 已实现。
+```bash
+curl http://localhost:7001/api/health
+```
+
+开发新的后端行为前，先阅读对应 `specs/*.md` 和 `contracts/openapi.yaml`。涉及 HTTP 行为时先更新契约，再实现 Controller → Service → Entity/Repository 分层。
 
 主要入口：
 
 - `src/configuration.ts`：Midway 应用配置
 - `src/controller/api.controller.ts`：HTTP API
-- `src/service/course.service.ts`：SQLite 数据访问
 - `src/config/config.default.ts`：运行时配置

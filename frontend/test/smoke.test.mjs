@@ -7,15 +7,11 @@ test("frontend test runner is configured", () => {
   assert.equal(typeof fetch, "function");
 });
 
-test("course dashboard keeps responsive grid and explicit empty state", async () => {
-  const componentPath = path.join(
-    process.cwd(),
-    "src/components/course-dashboard.tsx",
-  );
-  const source = await readFile(componentPath, "utf8");
+test("home page is no longer wired to the legacy dashboard", async () => {
+  const pagePath = path.join(process.cwd(), "src/app/page.tsx");
+  const source = await readFile(pagePath, "utf8");
 
-  assert.match(source, /grid-cols-1 gap-5 lg:grid-cols-2/);
-  assert.match(source, /\[overflow-wrap:anywhere\]/);
-  assert.match(source, /当前还没有课程/);
-  assert.doesNotMatch(source, /lg:grid-cols-3/);
+  assert.match(source, /足球赛事信息与互动预测平台/);
+  assert.match(source, /\/api\/health/);
+  assert.doesNotMatch(source, /legacy dashboard/i);
 });

@@ -1,11 +1,11 @@
 import { MidwayConfig } from "@midwayjs/core";
 
 export default {
-  keys: "course-demo-development-key",
+  keys: process.env.COOKIE_SECRET ?? "football-platform-development-key",
   koa: {
     port: Number(process.env.BACKEND_PORT ?? 7001),
   },
-  courseDatabase: {
-    path: process.env.DATABASE_PATH ?? "./data/course-demo.sqlite",
+  database: {
+    path: process.env.DATABASE_PATH ?? "./data/football-platform.sqlite",
   },
 } as MidwayConfig;

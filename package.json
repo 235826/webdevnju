@@ -1,8 +1,8 @@
 {
-  "name": "web-development-course",
+  "name": "football-match-platform",
   "version": "0.1.0",
   "private": true,
-  "description": "A full-stack web development course monorepo",
+  "description": "Football match information and score prediction platform",
   "workspaces": [
     "frontend",
     "backend"

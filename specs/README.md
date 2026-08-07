@@ -4,7 +4,7 @@
 
 好的 Spec 描述外部可观察行为，不预设代码落点。除非某项实现约束本身就是需求，否则不要指定文件、组件、类、SQL 或内部调用方式。
 
-提议中的示例见 [003：课程关键词搜索](./003-course-keyword-search.md) 与关联 [ADR-002](../docs/adr/002-course-search-responsibility-boundary.md)；二者尚未实施，实现前须按本文流程同步 Contract。
+当前项目示例见 [004：比分预测](./004-score-predictions.md) 与关联 [OpenAPI 契约](../contracts/openapi.yaml)。实现前须按本文流程同步 Contract。
 
 ## 何时必须写
 
@@ -25,7 +25,7 @@
 
 ## 编号与命名
 
-- 文件名使用 `NNN-kebab-case.md`，例如 `002-course-search.md`；`NNN` 为三位递增编号，slug 使用小写英文和连字符。
+- 文件名使用 `NNN-kebab-case.md`，例如 `004-score-predictions.md`；`NNN` 为三位递增编号，slug 使用小写英文和连字符。
 - 标题使用 `# NNN：中文功能名`，编号与文件名一致。
 - 新编号取现有最大编号加一；编号一经使用不重排、不复用。`README.md` 与 `_template.md` 不参与编号。
 - 一个 Spec 对应一项可独立验收的用户能力。范围过大时按用户结果拆分，不按前端、后端或文件目录拆分。

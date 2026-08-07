@@ -1,13 +1,24 @@
-# Web 开发课程项目
+# 足球赛事信息与互动预测平台
 
-这是一个用于 Web 全栈开发课程的 npm workspaces 单仓库。项目以一个最小的课程目录应用为例，串起 Next.js、Tailwind CSS、Midway.js、SQLite、OpenAPI、自动化测试和容器化部署。
+这是 Web 开发技术课程大作业项目，目标是实现一个面向足球赛事的信息服务与互动预测平台。用户可以浏览赛事、球队、赛程、积分榜和淘汰赛图，登录后进行比分预测、收藏比赛并参与评论；管理员负责维护赛事数据和录入比赛结果。
 
 ## 技术栈
 
 - 前端：Next.js 16、React 19、TypeScript、Tailwind CSS 4
 - 后端：Midway.js 4、Koa、TypeScript
-- 数据库：Node.js 内置 SQLite
+- 数据库：关系型数据库，本地骨架阶段使用 SQLite 文件
 - 工程化：npm workspaces、Prettier、ESLint、Playwright、GitHub Actions、Docker Compose
+
+## 当前状态
+
+旧模板代码已清理，仓库当前保留可运行的最小足球赛事平台骨架：
+
+- 后端提供 `GET /api/health`
+- 前端首页展示项目入口
+- `specs/` 已写入足球赛事平台功能规格
+- `contracts/openapi.yaml` 已重写为足球赛事 API 契约
+
+后续功能开发应按 `specs → contracts → backend/frontend → test/check` 的顺序推进。
 
 ## 快速开始
 
@@ -65,14 +76,14 @@ npm run dev --workspace backend
 ├── backend/           # Midway.js API 与 SQLite 数据访问
 ├── specs/             # 需求与验收标准
 ├── contracts/         # OpenAPI 等跨端契约
-├── docs/              # 架构及课程资料
+├── docs/              # 架构说明
 ├── scripts/           # 本地开发脚本
 ├── infra/             # Docker 等部署配置
 ├── .github/           # CI 工作流
 └── .cursor/           # 编辑器项目规则
 ```
 
-建议从 [课程指南](docs/course-guide.md) 开始，再阅读 [系统架构](docs/architecture.md)、[模板结构审查](docs/architecture-review.md) 和第一个 [功能规格](specs/001-course-catalog.md)。开始功能开发前先阅读 [Spec 编写规范](specs/README.md)；涉及 HTTP 时同时阅读 [Contract 编写规范](contracts/README.md)。
+建议先阅读 [项目总览 Spec](specs/000-product-overview.md)、[系统架构](docs/architecture.md) 和 [API 契约](contracts/openapi.yaml)。开始功能开发前先阅读 [Spec 编写规范](specs/README.md)；涉及 HTTP 时同时阅读 [Contract 编写规范](contracts/README.md)。
 
 ## 环境变量
 
