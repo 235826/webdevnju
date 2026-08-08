@@ -165,3 +165,17 @@ export type NullablePredictionResponse = {
 export type PredictionListResponse = {
   data: Prediction[];
 };
+
+export type Favorite = {
+  id: number;
+  match: Match;
+  createdAt: string;
+};
+
+export type FavoriteResponse = {
+  data: Favorite;
+};
+
+export type FavoriteListResponse = {
+  data: Favorite[];
+};

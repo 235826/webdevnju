@@ -179,6 +179,12 @@ export default function Home() {
             >
               我的预测
             </Link>
+            <Link
+              className="rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              href="/me/favorites"
+            >
+              我的收藏
+            </Link>
             {currentUser ? (
               <button
                 className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"

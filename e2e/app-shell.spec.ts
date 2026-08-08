@@ -118,6 +118,41 @@ test("管理员可以录入比赛结果，普通用户看不到结果录入表�
   await expect(page.getByText("已结束")).toBeVisible();
 });
 
+test("登录用户可以收藏、查看并取消收藏比赛", async ({ page }) => {
+  const username = `favorite_${Date.now()}`;
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "注册" }).first().click();
+  await page.getByLabel("用户名").fill(username);
+  await page.getByLabel("密码").fill("password123");
+  await page.getByRole("button", { name: "注册" }).last().click();
+  await page.getByRole("button", { name: "登录" }).first().click();
+  await page.getByLabel("用户名").fill(username);
+  await page.getByLabel("密码").fill("password123");
+  await page.getByRole("button", { name: "登录" }).last().click();
+  await expect(
+    page.getByText(new RegExp(`已登录为 ${username}`)),
+  ).toBeVisible();
+
+  await page.goto("/me/favorites");
+  await expect(page.getByRole("heading", { name: "我的收藏" })).toBeVisible();
+  await expect(page.getByText("暂无收藏。")).toBeVisible();
+
+  await page.goto("/matches/1");
+  await page.getByRole("button", { name: "收藏比赛" }).click();
+  await expect(page.getByText("已收藏比赛")).toBeVisible();
+
+  await page.getByRole("link", { name: "查看我的收藏" }).click();
+  await expect(page.getByText("软件学院 vs 人工智能学院")).toBeVisible();
+
+  await page.getByRole("link", { name: /软件学院 vs 人工智能学院/ }).click();
+  await page.getByRole("button", { name: "取消收藏" }).click();
+  await expect(page.getByText("已取消收藏")).toBeVisible();
+
+  await page.goto("/me/favorites");
+  await expect(page.getByText("暂无收藏。")).toBeVisible();
+});
+
 test("用户可以查看积分榜和淘汰赛图", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("用户名").fill("admin");

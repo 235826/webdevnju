@@ -17,6 +17,7 @@ test("home page is no longer wired to the legacy dashboard", async () => {
   assert.match(source, /`\/api\/auth\/\$\{mode\}`/);
   assert.match(source, /\/api\/auth\/logout/);
   assert.match(source, /\/competitions/);
+  assert.match(source, /\/me\/favorites/);
   assert.doesNotMatch(source, /legacy dashboard/i);
 });
 
@@ -112,6 +113,29 @@ test("admin match result UI is wired to the documented API path", async () => {
   assert.match(matchDetail, /\/api\/admin\/matches\/\$\{match\.id\}\/result/);
   assert.match(matchDetail, /结果录入/);
   assert.match(matchDetail, /保存结果/);
+});
+
+test("favorite UI is wired to the documented API paths", async () => {
+  const matchDetailPath = path.join(
+    process.cwd(),
+    "src/app/matches/[matchId]/page.tsx",
+  );
+  const favoritesPath = path.join(
+    process.cwd(),
+    "src/app/me/favorites/page.tsx",
+  );
+
+  const [matchDetail, favorites] = await Promise.all([
+    readFile(matchDetailPath, "utf8"),
+    readFile(favoritesPath, "utf8"),
+  ]);
+
+  assert.match(matchDetail, /\/api\/users\/me\/favorites/);
+  assert.match(matchDetail, /\/api\/matches\/\$\{match\.id\}\/favorite/);
+  assert.match(matchDetail, /收藏比赛/);
+  assert.match(matchDetail, /取消收藏/);
+  assert.match(favorites, /\/api\/users\/me\/favorites/);
+  assert.match(favorites, /暂无收藏/);
 });
 
 test("standings and bracket pages are wired to the documented API paths", async () => {

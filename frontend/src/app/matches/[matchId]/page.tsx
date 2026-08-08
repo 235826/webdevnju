@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { ApiClientError, fetchJson, sendJson } from "../../../lib/api-client";
+import {
+  ApiClientError,
+  fetchJson,
+  sendEmpty,
+  sendJson,
+} from "../../../lib/api-client";
 import type {
   AuthResponse,
+  FavoriteListResponse,
+  FavoriteResponse,
   Match,
   MatchResponse,
   NullablePredictionResponse,
@@ -136,6 +143,7 @@ export default function MatchDetailPage() {
               />
             </dl>
           </article>
+          <FavoritePanel match={state.match} />
           <PredictionPanel match={state.match} />
           <AdminResultPanel
             currentUser={state.currentUser}
@@ -151,6 +159,146 @@ export default function MatchDetailPage() {
         </>
       ) : null}
     </main>
+  );
+}
+
+type FavoriteState =
+  | { kind: "loading" }
+  | { kind: "unauthenticated"; message: string }
+  | { kind: "ready"; isFavorite: boolean; message: string | null }
+  | { kind: "saving"; isFavorite: boolean; message: string }
+  | { kind: "error"; isFavorite: boolean; message: string };
+
+function FavoritePanel({ match }: { match: Match }) {
+  const [state, setState] = useState<FavoriteState>({ kind: "loading" });
+
+  useEffect(() => {
+    let active = true;
+
+    fetchJson<FavoriteListResponse>("/api/users/me/favorites")
+      .then((payload) => {
+        if (active) {
+          setState({
+            kind: "ready",
+            isFavorite: payload.data.some(
+              (favorite) => favorite.match.id === match.id,
+            ),
+            message: null,
+          });
+        }
+      })
+      .catch((error: unknown) => {
+        if (!active) {
+          return;
+        }
+
+        if (error instanceof ApiClientError && error.status === 401) {
+          setState({
+            kind: "unauthenticated",
+            message: "登录后可以收藏比赛。",
+          });
+          return;
+        }
+
+        setState({
+          kind: "error",
+          isFavorite: false,
+          message: error instanceof Error ? error.message : "收藏状态加载失败",
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [match.id]);
+
+  async function toggleFavorite() {
+    if (state.kind !== "ready" && state.kind !== "error") {
+      return;
+    }
+
+    const wasFavorite = state.isFavorite;
+    setState({
+      kind: "saving",
+      isFavorite: wasFavorite,
+      message: wasFavorite ? "正在取消收藏" : "正在收藏",
+    });
+
+    try {
+      if (wasFavorite) {
+        await sendEmpty(`/api/matches/${match.id}/favorite`, "DELETE");
+        setState({
+          kind: "ready",
+          isFavorite: false,
+          message: "已取消收藏",
+        });
+        return;
+      }
+
+      await sendJson<FavoriteResponse>(
+        `/api/matches/${match.id}/favorite`,
+        "POST",
+        {},
+      );
+      setState({
+        kind: "ready",
+        isFavorite: true,
+        message: "已收藏比赛",
+      });
+    } catch (error) {
+      setState({
+        kind: "error",
+        isFavorite: wasFavorite,
+        message: error instanceof Error ? error.message : "收藏操作失败",
+      });
+    }
+  }
+
+  return (
+    <section className="grid gap-4 rounded border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold text-slate-950">我的收藏</h2>
+        <Link
+          className="text-sm font-semibold text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+          href="/me/favorites"
+        >
+          查看我的收藏
+        </Link>
+      </div>
+
+      {state.kind === "loading" ? (
+        <p role="status" className="text-slate-600">
+          正在加载收藏状态
+        </p>
+      ) : null}
+
+      {state.kind === "unauthenticated" ? (
+        <p className="text-slate-600">{state.message}</p>
+      ) : null}
+
+      {state.kind !== "loading" && state.kind !== "unauthenticated" ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            className="rounded bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            disabled={state.kind === "saving"}
+            onClick={toggleFavorite}
+            type="button"
+          >
+            {state.isFavorite ? "取消收藏" : "收藏比赛"}
+          </button>
+          {state.message ? (
+            <p
+              className={
+                state.kind === "error" ? "text-red-700" : "text-slate-600"
+              }
+              role={state.kind === "error" ? "alert" : "status"}
+            >
+              {state.message}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
   );
 }
 

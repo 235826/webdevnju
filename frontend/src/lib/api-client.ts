@@ -53,6 +53,21 @@ export async function sendJson<T>(
   return (await response.json()) as T;
 }
 
+export async function sendEmpty(path: string, method: "DELETE"): Promise<void> {
+  const response = await fetch(path, {
+    method,
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new ApiClientError(
+      await readSafeError(response),
+      response.status,
+      response.headers.get("X-Request-Id") ?? undefined,
+    );
+  }
+}
+
 async function readSafeError(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as ErrorResponse;
