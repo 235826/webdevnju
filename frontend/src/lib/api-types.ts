@@ -101,6 +101,17 @@ export type MatchResponse = {
   data: Match;
 };
 
+export type MatchWriteRequest = {
+  stageId: number;
+  homeTeamId: number;
+  awayTeamId: number;
+  startsAt: string;
+  status: MatchStatus;
+  groupName: string | null;
+  knockoutRound: string | null;
+  bracketPosition: number | null;
+};
+
 export type TeamListResponse = {
   data: Team[];
 };

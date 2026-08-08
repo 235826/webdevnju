@@ -978,6 +978,7 @@ paths:
       tags: [Admin]
       operationId: deleteCompetition
       summary: 删除赛事
+      description: 删除 Competition 时级联删除其 Stage 和 Match；用户侧查询不再返回这些基础数据。
       security:
         - cookieAuth: []
       x-spec:
@@ -1076,6 +1077,7 @@ paths:
       tags: [Admin]
       operationId: deleteStage
       summary: 删除赛事阶段
+      description: 删除 Stage 时级联删除其 Match；用户侧查询不再返回这些基础数据。
       security:
         - cookieAuth: []
       x-spec:
@@ -1174,6 +1176,7 @@ paths:
       tags: [Admin]
       operationId: deleteTeam
       summary: 删除球队
+      description: 删除 Team 时级联删除该队参与的 Match；用户侧查询不再返回这些基础数据。
       security:
         - cookieAuth: []
       x-spec:
@@ -1272,6 +1275,7 @@ paths:
       tags: [Admin]
       operationId: deleteMatch
       summary: 删除比赛
+      description: 删除 Match 后，用户侧比赛查询不再返回该比赛。
       security:
         - cookieAuth: []
       x-spec:

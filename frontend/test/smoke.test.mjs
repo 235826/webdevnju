@@ -18,6 +18,7 @@ test("home page is no longer wired to the legacy dashboard", async () => {
   assert.match(source, /\/api\/auth\/logout/);
   assert.match(source, /\/competitions/);
   assert.match(source, /\/me\/favorites/);
+  assert.match(source, /\/admin\/matches/);
   assert.doesNotMatch(source, /legacy dashboard/i);
 });
 
@@ -115,6 +116,20 @@ test("admin match result UI is wired to the documented API path", async () => {
   assert.match(matchDetail, /\/api\/admin\/matches\/\$\{match\.id\}\/result/);
   assert.match(matchDetail, /结果录入/);
   assert.match(matchDetail, /保存结果/);
+});
+
+test("admin match data UI is wired to the documented API paths", async () => {
+  const adminMatchesPath = path.join(
+    process.cwd(),
+    "src/app/admin/matches/page.tsx",
+  );
+  const adminMatches = await readFile(adminMatchesPath, "utf8");
+
+  assert.match(adminMatches, /\/api\/auth\/me/);
+  assert.match(adminMatches, /\/api\/teams/);
+  assert.match(adminMatches, /\/api\/admin\/matches/);
+  assert.match(adminMatches, /管理比赛/);
+  assert.match(adminMatches, /创建比赛/);
 });
 
 test("favorite UI is wired to the documented API paths", async () => {

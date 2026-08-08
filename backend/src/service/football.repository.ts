@@ -23,6 +23,20 @@ type StoredMatch = {
   updatedAt: string;
 };
 
+type CompetitionWrite = Pick<Competition, "name" | "description">;
+type StageWrite = Pick<
+  Stage,
+  "competitionId" | "name" | "type" | "groupName" | "sortOrder"
+>;
+type TeamWrite = Pick<
+  Team,
+  "name" | "shortName" | "logoUrl" | "openLigaDbTeamId"
+>;
+type MatchWrite = Omit<
+  StoredMatch,
+  "id" | "result" | "createdAt" | "updatedAt"
+>;
+
 const SEED_TIME = "2026-08-08T00:00:00.000Z";
 
 const competitions: Competition[] = [
@@ -305,6 +319,186 @@ export class FootballRepository {
     return this.toMatch(match);
   }
 
+  createCompetition(input: CompetitionWrite): Competition {
+    const now = new Date().toISOString();
+    const competition: Competition = {
+      id: nextId(competitions),
+      ...input,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    competitions.push(competition);
+    return competition;
+  }
+
+  updateCompetition(
+    id: number,
+    input: CompetitionWrite,
+  ): Competition | undefined {
+    const competition = this.findCompetition(id);
+
+    if (!competition) {
+      return undefined;
+    }
+
+    competition.name = input.name;
+    competition.description = input.description;
+    competition.updatedAt = new Date().toISOString();
+
+    return competition;
+  }
+
+  deleteCompetition(id: number): boolean {
+    const index = competitions.findIndex(
+      (competition) => competition.id === id,
+    );
+
+    if (index === -1) {
+      return false;
+    }
+
+    const stageIds = stages
+      .filter((stage) => stage.competitionId === id)
+      .map((stage) => stage.id);
+    deleteWhere(matches, (match) => stageIds.includes(match.stageId));
+    deleteWhere(stages, (stage) => stage.competitionId === id);
+    competitions.splice(index, 1);
+    return true;
+  }
+
+  createStage(input: StageWrite): Stage {
+    const now = new Date().toISOString();
+    const stage: Stage = {
+      id: nextId(stages),
+      ...input,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    stages.push(stage);
+    return stage;
+  }
+
+  updateStage(id: number, input: StageWrite): Stage | undefined {
+    const stage = this.findStage(id);
+
+    if (!stage) {
+      return undefined;
+    }
+
+    stage.competitionId = input.competitionId;
+    stage.name = input.name;
+    stage.type = input.type;
+    stage.groupName = input.groupName;
+    stage.sortOrder = input.sortOrder;
+    stage.updatedAt = new Date().toISOString();
+
+    return stage;
+  }
+
+  deleteStage(id: number): boolean {
+    const index = stages.findIndex((stage) => stage.id === id);
+
+    if (index === -1) {
+      return false;
+    }
+
+    deleteWhere(matches, (match) => match.stageId === id);
+    stages.splice(index, 1);
+    return true;
+  }
+
+  createTeam(input: TeamWrite): Team {
+    const now = new Date().toISOString();
+    const team: Team = {
+      id: nextId(teams),
+      ...input,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    teams.push(team);
+    return team;
+  }
+
+  updateTeam(id: number, input: TeamWrite): Team | undefined {
+    const team = this.findTeam(id);
+
+    if (!team) {
+      return undefined;
+    }
+
+    team.name = input.name;
+    team.shortName = input.shortName;
+    team.logoUrl = input.logoUrl;
+    team.openLigaDbTeamId = input.openLigaDbTeamId;
+    team.updatedAt = new Date().toISOString();
+
+    return team;
+  }
+
+  deleteTeam(id: number): boolean {
+    const index = teams.findIndex((team) => team.id === id);
+
+    if (index === -1) {
+      return false;
+    }
+
+    deleteWhere(
+      matches,
+      (match) => match.homeTeamId === id || match.awayTeamId === id,
+    );
+    teams.splice(index, 1);
+    return true;
+  }
+
+  createMatch(input: MatchWrite): Match {
+    const now = new Date().toISOString();
+    const match: StoredMatch = {
+      id: nextId(matches),
+      ...input,
+      result: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    matches.push(match);
+    return this.toMatch(match);
+  }
+
+  updateMatch(id: number, input: MatchWrite): Match | undefined {
+    const match = matches.find((candidate) => candidate.id === id);
+
+    if (!match) {
+      return undefined;
+    }
+
+    match.stageId = input.stageId;
+    match.homeTeamId = input.homeTeamId;
+    match.awayTeamId = input.awayTeamId;
+    match.startsAt = input.startsAt;
+    match.status = input.status;
+    match.groupName = input.groupName;
+    match.knockoutRound = input.knockoutRound;
+    match.bracketPosition = input.bracketPosition;
+    match.result = input.status === "FINISHED" ? match.result : null;
+    match.updatedAt = new Date().toISOString();
+
+    return this.toMatch(match);
+  }
+
+  deleteMatch(id: number): boolean {
+    const index = matches.findIndex((match) => match.id === id);
+
+    if (index === -1) {
+      return false;
+    }
+
+    matches.splice(index, 1);
+    return true;
+  }
+
   private toMatch(match: StoredMatch): Match {
     const stage = this.requireStage(match.stageId);
     const competition = this.requireCompetition(stage.competitionId);
@@ -354,5 +548,17 @@ export class FootballRepository {
     }
 
     return team;
+  }
+}
+
+function nextId(records: Array<{ id: number }>): number {
+  return Math.max(0, ...records.map((record) => record.id)) + 1;
+}
+
+function deleteWhere<T>(records: T[], predicate: (record: T) => boolean): void {
+  for (let index = records.length - 1; index >= 0; index -= 1) {
+    if (predicate(records[index])) {
+      records.splice(index, 1);
+    }
   }
 }

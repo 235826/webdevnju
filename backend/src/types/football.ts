@@ -157,6 +157,37 @@ export type ScoreLineRequest = {
 
 export type MatchResultRequest = ScoreLineRequest;
 
+export type CompetitionWriteRequest = {
+  name?: unknown;
+  description?: unknown;
+};
+
+export type StageWriteRequest = {
+  competitionId?: unknown;
+  name?: unknown;
+  type?: unknown;
+  groupName?: unknown;
+  sortOrder?: unknown;
+};
+
+export type TeamWriteRequest = {
+  name?: unknown;
+  shortName?: unknown;
+  logoUrl?: unknown;
+  openLigaDbTeamId?: unknown;
+};
+
+export type MatchWriteRequest = {
+  stageId?: unknown;
+  homeTeamId?: unknown;
+  awayTeamId?: unknown;
+  startsAt?: unknown;
+  status?: unknown;
+  groupName?: unknown;
+  knockoutRound?: unknown;
+  bracketPosition?: unknown;
+};
+
 export type PredictionResponse = {
   data: Prediction;
 };
