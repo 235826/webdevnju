@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { test } from "node:test";
+import type { Match, Stage, Team } from "../src/types/football.ts";
 
 process.env.MIDWAY_TS_MODE = "false";
 process.env.NODE_ENV = "unittest";
@@ -140,3 +141,196 @@ test("003 team controller returns safe 404 errors", async () => {
   assert.equal("error" in missingTeam, true);
   assert.doesNotMatch(JSON.stringify(missingTeam), /Seed|Error:|repository/i);
 });
+
+test("006 AC-01 and AC-03 ranks league standings by points, goals, and configured order", () => {
+  const service = createFootballService();
+  service.footballRepository = createStandingsRepository(
+    {
+      id: 10,
+      competitionId: 1,
+      name: "联赛轮次",
+      type: "LEAGUE",
+      groupName: null,
+      sortOrder: 1,
+      createdAt: "2026-08-08T00:00:00.000Z",
+      updatedAt: "2026-08-08T00:00:00.000Z",
+    },
+    [
+      makeMatch(101, 10, makeTeam(1, "甲队"), makeTeam(2, "乙队"), {
+        homeScore: 2,
+        awayScore: 0,
+      }),
+      makeMatch(102, 10, makeTeam(3, "丙队"), makeTeam(4, "丁队"), {
+        homeScore: 3,
+        awayScore: 1,
+      }),
+      makeMatch(103, 10, makeTeam(2, "乙队"), makeTeam(4, "丁队"), {
+        homeScore: 4,
+        awayScore: 1,
+      }),
+      makeMatch(104, 10, makeTeam(1, "甲队"), makeTeam(3, "丙队"), null),
+    ],
+  );
+
+  const response = service.getStageStandings("10");
+
+  assert.equal(response.stageType, "LEAGUE");
+  assert.equal(response.groups.length, 1);
+  assert.equal(response.groups[0].groupName, null);
+  assert.deepEqual(
+    response.groups[0].rows.map((row) => [
+      row.rank,
+      row.team.name,
+      row.played,
+      row.goalDifference,
+      row.goalsFor,
+      row.points,
+    ]),
+    [
+      [1, "丙队", 1, 2, 3, 3],
+      [2, "甲队", 1, 2, 2, 3],
+      [3, "乙队", 2, 1, 4, 3],
+      [4, "丁队", 2, -5, 2, 0],
+    ],
+  );
+});
+
+test("006 AC-02 returns group standings separately", () => {
+  const service = createFootballService();
+  service.footballRepository = createStandingsRepository(
+    {
+      id: 20,
+      competitionId: 1,
+      name: "小组赛",
+      type: "GROUP",
+      groupName: null,
+      sortOrder: 1,
+      createdAt: "2026-08-08T00:00:00.000Z",
+      updatedAt: "2026-08-08T00:00:00.000Z",
+    },
+    [
+      makeMatch(201, 20, makeTeam(1, "甲队"), makeTeam(2, "乙队"), {
+        homeScore: 1,
+        awayScore: 0,
+        groupName: "A",
+      }),
+      makeMatch(202, 20, makeTeam(3, "丙队"), makeTeam(4, "丁队"), {
+        homeScore: 0,
+        awayScore: 0,
+        groupName: "B",
+      }),
+    ],
+  );
+
+  const response = service.getStageStandings("20");
+
+  assert.deepEqual(
+    response.groups.map((group) => [
+      group.groupName,
+      group.rows.map((row) => row.team.name),
+    ]),
+    [
+      ["A", ["甲队", "乙队"]],
+      ["B", ["丙队", "丁队"]],
+    ],
+  );
+});
+
+test("006 AC-04 returns knockout bracket rounds by bracket position", () => {
+  const service = createFootballService();
+  const response = service.getStageBracket("2");
+
+  assert.equal(response.stageId, 2);
+  assert.equal(response.rounds[0].round, "半决赛");
+  assert.equal(response.rounds[0].matches[0].bracketPosition, 1);
+  assert.equal(response.rounds[0].matches[0].homeTeam.name, "软件学院");
+});
+
+test("006 AC-05 and AC-06 return distinguishable unsupported stage errors", async () => {
+  const { controller } = createController();
+  const standings = await controller.getStageStandings("2");
+
+  assert.equal(controller.ctx?.status, 409);
+  assert.equal("error" in standings, true);
+  assert.match(JSON.stringify(standings), /UNSUPPORTED_STAGE_TYPE/);
+
+  const bracket = await controller.getStageBracket("1");
+
+  assert.equal(controller.ctx?.status, 409);
+  assert.equal("error" in bracket, true);
+  assert.match(JSON.stringify(bracket), /UNSUPPORTED_STAGE_TYPE/);
+});
+
+function createStandingsRepository(stage: Stage, matches: Match[]) {
+  return {
+    findStage(id: number) {
+      return id === stage.id ? stage : undefined;
+    },
+    listMatches(filters: { stageId?: number }) {
+      return matches.filter((match) => match.stage.id === filters.stageId);
+    },
+  } as never;
+}
+
+function makeTeam(id: number, name: string): Team {
+  return {
+    id,
+    name,
+    shortName: null,
+    logoUrl: null,
+    openLigaDbTeamId: null,
+    createdAt: "2026-08-08T00:00:00.000Z",
+    updatedAt: "2026-08-08T00:00:00.000Z",
+  };
+}
+
+function makeMatch(
+  id: number,
+  stageId: number,
+  homeTeam: Team,
+  awayTeam: Team,
+  resultConfig: {
+    homeScore: number;
+    awayScore: number;
+    groupName?: string;
+  } | null,
+): Match {
+  const stage: Stage = {
+    id: stageId,
+    competitionId: 1,
+    name: "测试阶段",
+    type: resultConfig?.groupName ? "GROUP" : "LEAGUE",
+    groupName: resultConfig?.groupName ?? null,
+    sortOrder: 1,
+    createdAt: "2026-08-08T00:00:00.000Z",
+    updatedAt: "2026-08-08T00:00:00.000Z",
+  };
+
+  return {
+    id,
+    competition: {
+      id: 1,
+      name: "测试赛事",
+      description: "测试赛事",
+      createdAt: "2026-08-08T00:00:00.000Z",
+      updatedAt: "2026-08-08T00:00:00.000Z",
+    },
+    stage,
+    homeTeam,
+    awayTeam,
+    startsAt: "2026-09-01T10:00:00.000Z",
+    status: resultConfig ? "FINISHED" : "SCHEDULED",
+    groupName: resultConfig?.groupName ?? null,
+    knockoutRound: null,
+    bracketPosition: null,
+    result: resultConfig
+      ? {
+          homeScore: resultConfig.homeScore,
+          awayScore: resultConfig.awayScore,
+          updatedAt: "2026-09-02T10:00:00.000Z",
+        }
+      : null,
+    createdAt: "2026-08-08T00:00:00.000Z",
+    updatedAt: "2026-08-08T00:00:00.000Z",
+  };
+}

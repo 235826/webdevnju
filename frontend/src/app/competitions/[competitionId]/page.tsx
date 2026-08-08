@@ -111,13 +111,21 @@ export default function CompetitionDetailPage() {
 
       {groupedMatches.map((matches) => (
         <section className="grid gap-4" key={matches[0].stage.id}>
-          <div>
-            <h2 className="text-2xl font-semibold text-slate-950">
-              {matches[0].stage.name}
-            </h2>
-            <p className="text-sm text-slate-500">
-              {stageTypeLabel(matches[0].stage.type)}
-            </p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-950">
+                {matches[0].stage.name}
+              </h2>
+              <p className="text-sm text-slate-500">
+                {stageTypeLabel(matches[0].stage.type)}
+              </p>
+            </div>
+            <Link
+              className="rounded border border-emerald-700 px-3 py-2 text-sm font-semibold text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              href={stageViewHref(matches[0].stage.id, matches[0].stage.type)}
+            >
+              {stageViewLabel(matches[0].stage.type)}
+            </Link>
           </div>
           <ul className="grid gap-3">
             {matches.map((match) => (
@@ -144,6 +152,16 @@ export default function CompetitionDetailPage() {
       ))}
     </main>
   );
+}
+
+function stageViewHref(stageId: number, type: string): string {
+  return type === "KNOCKOUT"
+    ? `/stages/${stageId}/bracket`
+    : `/stages/${stageId}/standings`;
+}
+
+function stageViewLabel(type: string): string {
+  return type === "KNOCKOUT" ? "查看淘汰赛图" : "查看积分榜";
 }
 
 function stageTypeLabel(type: string): string {

@@ -50,6 +50,9 @@ test("competition browsing pages are wired to the documented API paths", async (
   assert.match(competitions, /正在加载赛事/);
   assert.match(competitionDetail, /该赛事暂无比赛/);
   assert.match(matchDetail, /比赛详情/);
+  assert.match(competitionDetail, /stageViewHref/);
+  assert.match(competitionDetail, /查看积分榜/);
+  assert.match(competitionDetail, /查看淘汰赛图/);
 });
 
 test("team pages are wired to the documented API paths", async () => {
@@ -109,4 +112,27 @@ test("admin match result UI is wired to the documented API path", async () => {
   assert.match(matchDetail, /\/api\/admin\/matches\/\$\{match\.id\}\/result/);
   assert.match(matchDetail, /结果录入/);
   assert.match(matchDetail, /保存结果/);
+});
+
+test("standings and bracket pages are wired to the documented API paths", async () => {
+  const standingsPath = path.join(
+    process.cwd(),
+    "src/app/stages/[stageId]/standings/page.tsx",
+  );
+  const bracketPath = path.join(
+    process.cwd(),
+    "src/app/stages/[stageId]/bracket/page.tsx",
+  );
+
+  const [standings, bracket] = await Promise.all([
+    readFile(standingsPath, "utf8"),
+    readFile(bracketPath, "utf8"),
+  ]);
+
+  assert.match(standings, /\/api\/stages\/\$\{stageId\}\/standings/);
+  assert.match(standings, /积分榜/);
+  assert.match(standings, /净胜/);
+  assert.match(bracket, /\/api\/stages\/\$\{stageId\}\/bracket/);
+  assert.match(bracket, /淘汰赛图/);
+  assert.match(bracket, /位置/);
 });

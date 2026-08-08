@@ -1,6 +1,6 @@
 # 006：积分榜与淘汰赛图
 
-> 状态：草案
+> 状态：已验收
 >
 > 关联事项：Web 开发技术课程大作业
 
@@ -53,17 +53,17 @@
 
 ## 验证映射
 
-| AC    | 验证方式  | 命令或可复现步骤                      | 结果 / 证据  |
-| ----- | --------- | ------------------------------------- | ------------ |
-| AC-01 | API / E2E | 准备联赛赛果并查看积分榜              | 待实现后填写 |
-| AC-02 | API / E2E | 准备小组赛分组并查看积分榜            | 待实现后填写 |
-| AC-03 | API Test  | 混合已录入和未录入结果的比赛          | 待实现后填写 |
-| AC-04 | API / E2E | 准备淘汰赛 round / bracket 数据并查看 | 待实现后填写 |
-| AC-05 | API Test  | 对淘汰赛阶段请求积分榜                | 待实现后填写 |
-| AC-06 | API Test  | 对小组赛或联赛阶段请求淘汰赛图        | 待实现后填写 |
+| AC    | 验证方式  | 命令或可复现步骤                      | 结果 / 证据                                                                                                   |
+| ----- | --------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| AC-01 | API / E2E | 准备联赛赛果并查看积分榜              | `backend/test/football.test.mts` 覆盖积分、净胜球、进球数和配置顺序排序；`e2e/app-shell.spec.ts` 覆盖页面查看 |
+| AC-02 | API / E2E | 准备小组赛分组并查看积分榜            | `backend/test/football.test.mts` 覆盖分组返回；`e2e/app-shell.spec.ts` 覆盖页面分组展示                       |
+| AC-03 | API Test  | 混合已录入和未录入结果的比赛          | `backend/test/football.test.mts` 覆盖未录入结果不计入统计                                                     |
+| AC-04 | API / E2E | 准备淘汰赛 round / bracket 数据并查看 | `backend/test/football.test.mts` 覆盖 bracket 排序；`e2e/app-shell.spec.ts` 覆盖页面查看                      |
+| AC-05 | API Test  | 对淘汰赛阶段请求积分榜                | `backend/test/football.test.mts` 覆盖 `UNSUPPORTED_STAGE_TYPE`                                                |
+| AC-06 | API Test  | 对小组赛或联赛阶段请求淘汰赛图        | `backend/test/football.test.mts` 覆盖 `UNSUPPORTED_STAGE_TYPE`                                                |
 
 ## 验收记录
 
-- `npm run check`：待执行。
-- 人工验收：待执行。
-- 已知限制：无。
+- `npm run check`：通过。
+- 人工验收：未执行；由 Playwright E2E 覆盖主要页面流程。
+- 已知限制：不自动生成淘汰赛对阵，不实现复杂同分规则。

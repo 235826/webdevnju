@@ -66,6 +66,16 @@ export class PredictionLockedError extends Error {
   }
 }
 
+export class UnsupportedStageTypeError extends Error {
+  readonly code = "UNSUPPORTED_STAGE_TYPE" as const;
+  readonly status = 409;
+
+  constructor(message = "当前阶段类型不支持该视图") {
+    super(message);
+    this.name = "UnsupportedStageTypeError";
+  }
+}
+
 export type ApiErrorCode =
   | "VALIDATION_FAILED"
   | "UNAUTHORIZED"
@@ -134,6 +144,7 @@ function isApiError(error: unknown): error is ApiErrorLike {
     error instanceof NotFoundError ||
     error instanceof ConflictError ||
     error instanceof PredictionLockedError ||
+    error instanceof UnsupportedStageTypeError ||
     (typeof error === "object" &&
       error !== null &&
       "code" in error &&

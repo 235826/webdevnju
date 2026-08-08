@@ -117,3 +117,31 @@ test("管理员可以录入比赛结果，普通用户看不到结果录入表�
   await expect(page.getByText("4 : 2")).toBeVisible();
   await expect(page.getByText("已结束")).toBeVisible();
 });
+
+test("用户可以查看积分榜和淘汰赛图", async ({ page }) => {
+  await page.goto("/");
+  await page.getByLabel("用户名").fill("admin");
+  await page.getByLabel("密码").fill("Admin12345");
+  await page.getByRole("button", { name: "登录" }).last().click();
+  await expect(page.getByText("已登录为 admin")).toBeVisible();
+
+  await page.goto("/matches/1");
+  await page.getByLabel("主队比分").fill("2");
+  await page.getByLabel("客队比分").fill("0");
+  await page.getByRole("button", { name: "保存结果" }).click();
+  await expect(page.getByText("比赛结果已保存")).toBeVisible();
+
+  await page.goto("/competitions/1");
+  await page.getByRole("link", { name: "查看积分榜" }).click();
+  await expect(page.getByRole("heading", { name: "积分榜" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A 组" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "软件学院" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "3" }).last()).toBeVisible();
+
+  await page.goto("/competitions/1");
+  await page.getByRole("link", { name: "查看淘汰赛图" }).click();
+  await expect(page.getByRole("heading", { name: "淘汰赛图" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "半决赛" })).toBeVisible();
+  await expect(page.getByText("软件学院")).toBeVisible();
+  await expect(page.getByText("电子工程学院")).toBeVisible();
+});

@@ -46,6 +46,28 @@ export class FootballController {
     }
   }
 
+  @Get("/stages/:stageId/standings")
+  async getStageStandings(@Param("stageId") stageId: string) {
+    const requestId = this.prepareRequest();
+
+    try {
+      return this.footballService.getStageStandings(stageId);
+    } catch (error) {
+      return this.handleError(error, requestId);
+    }
+  }
+
+  @Get("/stages/:stageId/bracket")
+  async getStageBracket(@Param("stageId") stageId: string) {
+    const requestId = this.prepareRequest();
+
+    try {
+      return this.footballService.getStageBracket(stageId);
+    } catch (error) {
+      return this.handleError(error, requestId);
+    }
+  }
+
   @Get("/teams")
   async listTeams() {
     const requestId = this.prepareRequest();

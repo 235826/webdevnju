@@ -109,6 +109,40 @@ export type TeamResponse = {
   data: Team;
 };
 
+export type StandingRow = {
+  rank: number;
+  team: Team;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+};
+
+export type StandingGroup = {
+  groupName: string | null;
+  rows: StandingRow[];
+};
+
+export type StandingsResponse = {
+  stageId: number;
+  stageType: StageType;
+  groups: StandingGroup[];
+};
+
+export type BracketRound = {
+  round: string;
+  matches: Match[];
+};
+
+export type BracketResponse = {
+  stageId: number;
+  rounds: BracketRound[];
+};
+
 export type Prediction = {
   id: number;
   matchId: number;
