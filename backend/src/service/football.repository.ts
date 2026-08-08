@@ -1,10 +1,14 @@
 import { Provide } from "@midwayjs/core";
+import { mkdirSync } from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+import { dirname, join } from "node:path";
 import {
   Competition,
   Match,
   MatchResult,
   MatchStatus,
   Stage,
+  StageType,
   Team,
 } from "../types/football";
 
@@ -37,9 +41,59 @@ type MatchWrite = Omit<
   "id" | "result" | "createdAt" | "updatedAt"
 >;
 
-const SEED_TIME = "2026-08-08T00:00:00.000Z";
+type CompetitionRow = {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+};
+type StageRow = {
+  id: number;
+  competition_id: number;
+  name: string;
+  type: string;
+  group_name: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+type TeamRow = {
+  id: number;
+  name: string;
+  short_name: string | null;
+  logo_url: string | null;
+  open_liga_db_team_id: number | null;
+  created_at: string;
+  updated_at: string;
+};
+type MatchRow = {
+  id: number;
+  stage_id: number;
+  home_team_id: number;
+  away_team_id: number;
+  starts_at: string;
+  status: string;
+  group_name: string | null;
+  knockout_round: string | null;
+  bracket_position: number | null;
+  result_home_score: number | null;
+  result_away_score: number | null;
+  result_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
-const competitions: Competition[] = [
+const SEED_TIME = "2026-08-08T00:00:00.000Z";
+const DEFAULT_DATABASE_PATH = join(
+  process.cwd(),
+  "backend",
+  "data",
+  "football-platform.sqlite",
+);
+const connections = new Map<string, DatabaseSync>();
+
+const seedCompetitions: Competition[] = [
   {
     id: 1,
     name: "1. Fußball-Bundesliga 2024/2025",
@@ -56,7 +110,7 @@ const competitions: Competition[] = [
   },
 ];
 
-const stages: Stage[] = [
+const seedStages: Stage[] = [
   {
     id: 1,
     competitionId: 1,
@@ -89,7 +143,7 @@ const stages: Stage[] = [
   },
 ];
 
-const teams: Team[] = [
+const seedTeams: Team[] = [
   {
     id: 1,
     name: "FC Bayern München",
@@ -168,7 +222,7 @@ const teams: Team[] = [
   },
 ];
 
-const matches: StoredMatch[] = [
+const seedMatches: StoredMatch[] = [
   {
     id: 1,
     stageId: 1,
@@ -233,24 +287,64 @@ const matches: StoredMatch[] = [
 
 @Provide()
 export class FootballRepository {
+  private readonly db: DatabaseSync;
+
+  static closeConnection(databasePath: string): void {
+    const connection = connections.get(databasePath);
+
+    if (connection) {
+      connection.close();
+      connections.delete(databasePath);
+    }
+  }
+
+  constructor(databasePath = resolveDatabasePath()) {
+    this.db = getConnection(databasePath);
+    initializeSchema(this.db);
+    seedIfEmpty(this.db);
+  }
+
   listCompetitions(): Competition[] {
-    return [...competitions].sort((left, right) => left.id - right.id);
+    return this.db
+      .prepare("SELECT * FROM competitions ORDER BY id ASC")
+      .all()
+      .map((row) => toCompetition(row as CompetitionRow));
   }
 
   findCompetition(id: number): Competition | undefined {
-    return competitions.find((competition) => competition.id === id);
+    const row = this.db
+      .prepare("SELECT * FROM competitions WHERE id = ?")
+      .get(id) as CompetitionRow | undefined;
+
+    return row ? toCompetition(row) : undefined;
   }
 
   findStage(id: number): Stage | undefined {
-    return stages.find((stage) => stage.id === id);
+    const row = this.db.prepare("SELECT * FROM stages WHERE id = ?").get(id) as
+      StageRow | undefined;
+
+    return row ? toStage(row) : undefined;
+  }
+
+  listStages(filters: { competitionId?: number } = {}): Stage[] {
+    const rows =
+      filters.competitionId === undefined
+        ? this.db
+            .prepare(
+              "SELECT * FROM stages ORDER BY competition_id ASC, sort_order ASC, id ASC",
+            )
+            .all()
+        : this.db
+            .prepare(
+              "SELECT * FROM stages WHERE competition_id = ? ORDER BY competition_id ASC, sort_order ASC, id ASC",
+            )
+            .all(filters.competitionId);
+
+    return rows.map((row) => toStage(row as StageRow));
   }
 
   listStagesByCompetition(competitionId: number): Stage[] {
-    return stages
-      .filter((stage) => stage.competitionId === competitionId)
-      .sort(
-        (left, right) => left.sortOrder - right.sortOrder || left.id - right.id,
-      );
+    return this.listStages({ competitionId });
   }
 
   listMatches(filters: {
@@ -258,7 +352,12 @@ export class FootballRepository {
     stageId?: number;
     status?: MatchStatus;
   }): Match[] {
-    return matches
+    const rows = this.db
+      .prepare("SELECT * FROM matches ORDER BY starts_at ASC, id ASC")
+      .all()
+      .map((row) => toStoredMatch(row as MatchRow));
+
+    return rows
       .map((match) => this.toMatch(match))
       .filter((match) => {
         return (
@@ -268,235 +367,262 @@ export class FootballRepository {
             match.stage.id === filters.stageId) &&
           (filters.status === undefined || match.status === filters.status)
         );
-      })
-      .sort(
-        (left, right) =>
-          Date.parse(left.startsAt) - Date.parse(right.startsAt) ||
-          left.id - right.id,
-      );
+      });
   }
 
   listTeams(): Team[] {
-    return [...teams].sort(
-      (left, right) =>
-        left.name.localeCompare(right.name, "zh-CN") || left.id - right.id,
-    );
+    return this.db
+      .prepare("SELECT * FROM teams")
+      .all()
+      .map((row) => toTeam(row as TeamRow))
+      .sort(
+        (left, right) =>
+          left.name.localeCompare(right.name, "zh-CN") || left.id - right.id,
+      );
   }
 
   findTeam(id: number): Team | undefined {
-    return teams.find((team) => team.id === id);
+    const row = this.db.prepare("SELECT * FROM teams WHERE id = ?").get(id) as
+      TeamRow | undefined;
+
+    return row ? toTeam(row) : undefined;
   }
 
   findMatch(id: number): Match | undefined {
-    const match = matches.find((candidate) => candidate.id === id);
+    const row = this.db
+      .prepare("SELECT * FROM matches WHERE id = ?")
+      .get(id) as MatchRow | undefined;
 
-    if (!match) {
-      return undefined;
-    }
-
-    return this.toMatch(match);
+    return row ? this.toMatch(toStoredMatch(row)) : undefined;
   }
 
   updateMatchResult(
     id: number,
     result: { homeScore: number; awayScore: number },
   ): Match | undefined {
-    const match = matches.find((candidate) => candidate.id === id);
+    const now = new Date().toISOString();
+    const update = this.db
+      .prepare(
+        `
+          UPDATE matches
+          SET status = 'FINISHED',
+              result_home_score = ?,
+              result_away_score = ?,
+              result_updated_at = ?,
+              updated_at = ?
+          WHERE id = ?
+        `,
+      )
+      .run(result.homeScore, result.awayScore, now, now, id);
 
-    if (!match) {
+    if (update.changes === 0) {
       return undefined;
     }
 
-    const now = new Date().toISOString();
-    match.result = {
-      homeScore: result.homeScore,
-      awayScore: result.awayScore,
-      updatedAt: now,
-    };
-    match.status = "FINISHED";
-    match.updatedAt = now;
-
-    return this.toMatch(match);
+    return this.findMatch(id);
   }
 
   createCompetition(input: CompetitionWrite): Competition {
     const now = new Date().toISOString();
-    const competition: Competition = {
-      id: nextId(competitions),
-      ...input,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const result = this.db
+      .prepare(
+        "INSERT INTO competitions (name, description, created_at, updated_at) VALUES (?, ?, ?, ?)",
+      )
+      .run(input.name, input.description, now, now);
 
-    competitions.push(competition);
-    return competition;
+    return this.requireCompetition(Number(result.lastInsertRowid));
   }
 
   updateCompetition(
     id: number,
     input: CompetitionWrite,
   ): Competition | undefined {
-    const competition = this.findCompetition(id);
+    const update = this.db
+      .prepare(
+        "UPDATE competitions SET name = ?, description = ?, updated_at = ? WHERE id = ?",
+      )
+      .run(input.name, input.description, new Date().toISOString(), id);
 
-    if (!competition) {
-      return undefined;
-    }
-
-    competition.name = input.name;
-    competition.description = input.description;
-    competition.updatedAt = new Date().toISOString();
-
-    return competition;
+    return update.changes === 0 ? undefined : this.findCompetition(id);
   }
 
   deleteCompetition(id: number): boolean {
-    const index = competitions.findIndex(
-      (competition) => competition.id === id,
+    return (
+      this.db.prepare("DELETE FROM competitions WHERE id = ?").run(id).changes >
+      0
     );
-
-    if (index === -1) {
-      return false;
-    }
-
-    const stageIds = stages
-      .filter((stage) => stage.competitionId === id)
-      .map((stage) => stage.id);
-    deleteWhere(matches, (match) => stageIds.includes(match.stageId));
-    deleteWhere(stages, (stage) => stage.competitionId === id);
-    competitions.splice(index, 1);
-    return true;
   }
 
   createStage(input: StageWrite): Stage {
     const now = new Date().toISOString();
-    const stage: Stage = {
-      id: nextId(stages),
-      ...input,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const result = this.db
+      .prepare(
+        `
+          INSERT INTO stages (competition_id, name, type, group_name, sort_order, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .run(
+        input.competitionId,
+        input.name,
+        input.type,
+        input.groupName,
+        input.sortOrder,
+        now,
+        now,
+      );
 
-    stages.push(stage);
-    return stage;
+    return this.requireStage(Number(result.lastInsertRowid));
   }
 
   updateStage(id: number, input: StageWrite): Stage | undefined {
-    const stage = this.findStage(id);
+    const update = this.db
+      .prepare(
+        `
+          UPDATE stages
+          SET competition_id = ?, name = ?, type = ?, group_name = ?, sort_order = ?, updated_at = ?
+          WHERE id = ?
+        `,
+      )
+      .run(
+        input.competitionId,
+        input.name,
+        input.type,
+        input.groupName,
+        input.sortOrder,
+        new Date().toISOString(),
+        id,
+      );
 
-    if (!stage) {
-      return undefined;
-    }
-
-    stage.competitionId = input.competitionId;
-    stage.name = input.name;
-    stage.type = input.type;
-    stage.groupName = input.groupName;
-    stage.sortOrder = input.sortOrder;
-    stage.updatedAt = new Date().toISOString();
-
-    return stage;
+    return update.changes === 0 ? undefined : this.findStage(id);
   }
 
   deleteStage(id: number): boolean {
-    const index = stages.findIndex((stage) => stage.id === id);
-
-    if (index === -1) {
-      return false;
-    }
-
-    deleteWhere(matches, (match) => match.stageId === id);
-    stages.splice(index, 1);
-    return true;
+    return (
+      this.db.prepare("DELETE FROM stages WHERE id = ?").run(id).changes > 0
+    );
   }
 
   createTeam(input: TeamWrite): Team {
     const now = new Date().toISOString();
-    const team: Team = {
-      id: nextId(teams),
-      ...input,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const result = this.db
+      .prepare(
+        `
+          INSERT INTO teams (name, short_name, logo_url, open_liga_db_team_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .run(
+        input.name,
+        input.shortName,
+        input.logoUrl,
+        input.openLigaDbTeamId,
+        now,
+        now,
+      );
 
-    teams.push(team);
-    return team;
+    return this.requireTeam(Number(result.lastInsertRowid));
   }
 
   updateTeam(id: number, input: TeamWrite): Team | undefined {
-    const team = this.findTeam(id);
+    const update = this.db
+      .prepare(
+        `
+          UPDATE teams
+          SET name = ?, short_name = ?, logo_url = ?, open_liga_db_team_id = ?, updated_at = ?
+          WHERE id = ?
+        `,
+      )
+      .run(
+        input.name,
+        input.shortName,
+        input.logoUrl,
+        input.openLigaDbTeamId,
+        new Date().toISOString(),
+        id,
+      );
 
-    if (!team) {
-      return undefined;
-    }
-
-    team.name = input.name;
-    team.shortName = input.shortName;
-    team.logoUrl = input.logoUrl;
-    team.openLigaDbTeamId = input.openLigaDbTeamId;
-    team.updatedAt = new Date().toISOString();
-
-    return team;
+    return update.changes === 0 ? undefined : this.findTeam(id);
   }
 
   deleteTeam(id: number): boolean {
-    const index = teams.findIndex((team) => team.id === id);
-
-    if (index === -1) {
-      return false;
-    }
-
-    deleteWhere(
-      matches,
-      (match) => match.homeTeamId === id || match.awayTeamId === id,
+    return (
+      this.db.prepare("DELETE FROM teams WHERE id = ?").run(id).changes > 0
     );
-    teams.splice(index, 1);
-    return true;
   }
 
   createMatch(input: MatchWrite): Match {
     const now = new Date().toISOString();
-    const match: StoredMatch = {
-      id: nextId(matches),
-      ...input,
-      result: null,
-      createdAt: now,
-      updatedAt: now,
-    };
+    const result = this.db
+      .prepare(
+        `
+          INSERT INTO matches (
+            stage_id, home_team_id, away_team_id, starts_at, status, group_name,
+            knockout_round, bracket_position, created_at, updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      )
+      .run(
+        input.stageId,
+        input.homeTeamId,
+        input.awayTeamId,
+        input.startsAt,
+        input.status,
+        input.groupName,
+        input.knockoutRound,
+        input.bracketPosition,
+        now,
+        now,
+      );
 
-    matches.push(match);
-    return this.toMatch(match);
+    return this.requireMatch(Number(result.lastInsertRowid));
   }
 
   updateMatch(id: number, input: MatchWrite): Match | undefined {
-    const match = matches.find((candidate) => candidate.id === id);
+    const now = new Date().toISOString();
+    const update = this.db
+      .prepare(
+        `
+          UPDATE matches
+          SET stage_id = ?,
+              home_team_id = ?,
+              away_team_id = ?,
+              starts_at = ?,
+              status = ?,
+              group_name = ?,
+              knockout_round = ?,
+              bracket_position = ?,
+              result_home_score = CASE WHEN ? = 'FINISHED' THEN result_home_score ELSE NULL END,
+              result_away_score = CASE WHEN ? = 'FINISHED' THEN result_away_score ELSE NULL END,
+              result_updated_at = CASE WHEN ? = 'FINISHED' THEN result_updated_at ELSE NULL END,
+              updated_at = ?
+          WHERE id = ?
+        `,
+      )
+      .run(
+        input.stageId,
+        input.homeTeamId,
+        input.awayTeamId,
+        input.startsAt,
+        input.status,
+        input.groupName,
+        input.knockoutRound,
+        input.bracketPosition,
+        input.status,
+        input.status,
+        input.status,
+        now,
+        id,
+      );
 
-    if (!match) {
-      return undefined;
-    }
-
-    match.stageId = input.stageId;
-    match.homeTeamId = input.homeTeamId;
-    match.awayTeamId = input.awayTeamId;
-    match.startsAt = input.startsAt;
-    match.status = input.status;
-    match.groupName = input.groupName;
-    match.knockoutRound = input.knockoutRound;
-    match.bracketPosition = input.bracketPosition;
-    match.result = input.status === "FINISHED" ? match.result : null;
-    match.updatedAt = new Date().toISOString();
-
-    return this.toMatch(match);
+    return update.changes === 0 ? undefined : this.findMatch(id);
   }
 
   deleteMatch(id: number): boolean {
-    const index = matches.findIndex((match) => match.id === id);
-
-    if (index === -1) {
-      return false;
-    }
-
-    matches.splice(index, 1);
-    return true;
+    return (
+      this.db.prepare("DELETE FROM matches WHERE id = ?").run(id).changes > 0
+    );
   }
 
   private toMatch(match: StoredMatch): Match {
@@ -549,16 +675,252 @@ export class FootballRepository {
 
     return team;
   }
-}
 
-function nextId(records: Array<{ id: number }>): number {
-  return Math.max(0, ...records.map((record) => record.id)) + 1;
-}
+  private requireMatch(id: number): Match {
+    const match = this.findMatch(id);
 
-function deleteWhere<T>(records: T[], predicate: (record: T) => boolean): void {
-  for (let index = records.length - 1; index >= 0; index -= 1) {
-    if (predicate(records[index])) {
-      records.splice(index, 1);
+    if (!match) {
+      throw new Error(`Seed match ${id} is missing`);
     }
+
+    return match;
   }
+}
+
+function resolveDatabasePath(): string {
+  if (process.env.NODE_ENV === "unittest") {
+    return ":memory:";
+  }
+
+  return (
+    process.env.FOOTBALL_DATABASE_PATH ??
+    process.env.DATABASE_PATH ??
+    DEFAULT_DATABASE_PATH
+  );
+}
+
+function getConnection(databasePath: string): DatabaseSync {
+  const existing = connections.get(databasePath);
+
+  if (existing) {
+    return existing;
+  }
+
+  if (databasePath !== ":memory:") {
+    mkdirSync(dirname(databasePath), { recursive: true });
+  }
+
+  const db = new DatabaseSync(databasePath);
+  db.exec("PRAGMA foreign_keys = ON");
+  connections.set(databasePath, db);
+  return db;
+}
+
+function initializeSchema(db: DatabaseSync): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS competitions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS stages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      competition_id INTEGER NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('GROUP', 'LEAGUE', 'KNOCKOUT')),
+      group_name TEXT,
+      sort_order INTEGER NOT NULL CHECK (sort_order >= 0),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      short_name TEXT,
+      logo_url TEXT,
+      open_liga_db_team_id INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS matches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stage_id INTEGER NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
+      home_team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+      away_team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+      starts_at TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('SCHEDULED', 'LIVE', 'FINISHED')),
+      group_name TEXT,
+      knockout_round TEXT,
+      bracket_position INTEGER,
+      result_home_score INTEGER,
+      result_away_score INTEGER,
+      result_updated_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_stages_competition_id ON stages(competition_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_stage_id ON matches(stage_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_home_team_id ON matches(home_team_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_away_team_id ON matches(away_team_id);
+  `);
+}
+
+function seedIfEmpty(db: DatabaseSync): void {
+  const row = db
+    .prepare("SELECT COUNT(*) AS count FROM competitions")
+    .get() as { count: number };
+
+  if (row.count > 0) {
+    return;
+  }
+
+  db.exec("BEGIN");
+  try {
+    for (const competition of seedCompetitions) {
+      db.prepare(
+        "INSERT INTO competitions (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+      ).run(
+        competition.id,
+        competition.name,
+        competition.description,
+        competition.createdAt,
+        competition.updatedAt,
+      );
+    }
+
+    for (const stage of seedStages) {
+      db.prepare(
+        `
+          INSERT INTO stages (id, competition_id, name, type, group_name, sort_order, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      ).run(
+        stage.id,
+        stage.competitionId,
+        stage.name,
+        stage.type,
+        stage.groupName,
+        stage.sortOrder,
+        stage.createdAt,
+        stage.updatedAt,
+      );
+    }
+
+    for (const team of seedTeams) {
+      db.prepare(
+        `
+          INSERT INTO teams (id, name, short_name, logo_url, open_liga_db_team_id, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+      ).run(
+        team.id,
+        team.name,
+        team.shortName,
+        team.logoUrl,
+        team.openLigaDbTeamId,
+        team.createdAt,
+        team.updatedAt,
+      );
+    }
+
+    for (const match of seedMatches) {
+      db.prepare(
+        `
+          INSERT INTO matches (
+            id, stage_id, home_team_id, away_team_id, starts_at, status, group_name,
+            knockout_round, bracket_position, result_home_score, result_away_score,
+            result_updated_at, created_at, updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+      ).run(
+        match.id,
+        match.stageId,
+        match.homeTeamId,
+        match.awayTeamId,
+        match.startsAt,
+        match.status,
+        match.groupName,
+        match.knockoutRound,
+        match.bracketPosition,
+        match.result?.homeScore ?? null,
+        match.result?.awayScore ?? null,
+        match.result?.updatedAt ?? null,
+        match.createdAt,
+        match.updatedAt,
+      );
+    }
+
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}
+
+function toCompetition(row: CompetitionRow): Competition {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toStage(row: StageRow): Stage {
+  return {
+    id: row.id,
+    competitionId: row.competition_id,
+    name: row.name,
+    type: row.type as StageType,
+    groupName: row.group_name,
+    sortOrder: row.sort_order,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toTeam(row: TeamRow): Team {
+  return {
+    id: row.id,
+    name: row.name,
+    shortName: row.short_name,
+    logoUrl: row.logo_url,
+    openLigaDbTeamId: row.open_liga_db_team_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function toStoredMatch(row: MatchRow): StoredMatch {
+  return {
+    id: row.id,
+    stageId: row.stage_id,
+    homeTeamId: row.home_team_id,
+    awayTeamId: row.away_team_id,
+    startsAt: row.starts_at,
+    status: row.status as MatchStatus,
+    groupName: row.group_name,
+    knockoutRound: row.knockout_round,
+    bracketPosition: row.bracket_position,
+    result:
+      row.result_home_score === null ||
+      row.result_away_score === null ||
+      row.result_updated_at === null
+        ? null
+        : {
+            homeScore: row.result_home_score,
+            awayScore: row.result_away_score,
+            updatedAt: row.result_updated_at,
+          },
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }

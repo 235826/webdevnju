@@ -15,10 +15,16 @@ const { AdminDataService } =
   require("../dist/service/admin-data.service.js") as typeof import("../src/service/admin-data.service.ts");
 const { AuthService } =
   require("../dist/service/auth.service.js") as typeof import("../src/service/auth.service.ts");
+const { CommentService } =
+  require("../dist/service/comment.service.js") as typeof import("../src/service/comment.service.ts");
+const { FavoriteService } =
+  require("../dist/service/favorite.service.js") as typeof import("../src/service/favorite.service.ts");
 const { FootballService } =
   require("../dist/service/football.service.js") as typeof import("../src/service/football.service.ts");
 const { PasswordService } =
   require("../dist/service/password.service.js") as typeof import("../src/service/password.service.ts");
+const { PredictionService } =
+  require("../dist/service/prediction.service.js") as typeof import("../src/service/prediction.service.ts");
 const { UserRepository } =
   require("../dist/service/user.repository.js") as typeof import("../src/service/user.repository.ts");
 
@@ -241,6 +247,46 @@ test("010 AC-03 admin deletes allowed base data and public APIs stop returning i
   assert.throws(() => footballService.getMatch(String(match.id)), {
     name: "NotFoundError",
   });
+});
+
+test("010 AC-03 deleting a match also removes predictions, favorites, and comments", () => {
+  const adminDataService = new AdminDataService();
+  const authService = createAuthService();
+  const favoriteService = new FavoriteService();
+  const predictionService = new PredictionService();
+  const commentService = new CommentService();
+  const user = authService.register({
+    username: "cascade_user",
+    password: "password123",
+  }).data;
+  const match = adminDataService.createMatch({
+    stageId: 1,
+    homeTeamId: 1,
+    awayTeamId: 6,
+    startsAt: "2027-03-01T10:00:00.000Z",
+    status: "SCHEDULED",
+    groupName: null,
+    knockoutRound: null,
+    bracketPosition: null,
+  }).data;
+
+  favoriteService.favoriteMatch(user, match.id);
+  predictionService.createMyPrediction(user, match.id, {
+    homeScore: 1,
+    awayScore: 0,
+  });
+  commentService.createMatchComment(user, match.id, {
+    content: "删除前评论",
+  });
+  assert.equal(favoriteService.countFavorites(user.id, match.id), 1);
+  assert.equal(predictionService.countActivePredictions(user.id, match.id), 1);
+  assert.equal(commentService.countComments(match.id), 1);
+
+  adminDataService.deleteMatch(match.id);
+
+  assert.equal(favoriteService.countFavorites(user.id, match.id), 0);
+  assert.equal(predictionService.countActivePredictions(user.id, match.id), 0);
+  assert.equal(commentService.countComments(match.id), 0);
 });
 
 test("010 AC-04 normal users cannot write admin data", async () => {

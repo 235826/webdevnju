@@ -93,6 +93,27 @@ export type CompetitionResponse = {
   data: Competition;
 };
 
+export type CompetitionWriteRequest = {
+  name: string;
+  description: string;
+};
+
+export type StageListResponse = {
+  data: Stage[];
+};
+
+export type StageResponse = {
+  data: Stage;
+};
+
+export type StageWriteRequest = {
+  competitionId: number;
+  name: string;
+  type: StageType;
+  groupName: string | null;
+  sortOrder: number;
+};
+
 export type MatchListResponse = {
   data: Match[];
 };
@@ -118,6 +139,13 @@ export type TeamListResponse = {
 
 export type TeamResponse = {
   data: Team;
+};
+
+export type TeamWriteRequest = {
+  name: string;
+  shortName: string | null;
+  logoUrl: string | null;
+  openLigaDbTeamId: number | null;
 };
 
 export type ExternalProfileStatus = "AVAILABLE" | "UNAVAILABLE" | "NO_MATCH";

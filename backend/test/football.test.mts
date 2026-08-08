@@ -53,11 +53,16 @@ test("AC-02 lists competition matches grouped by their stages", () => {
   const service = createFootballService();
   const competition = service.getCompetition("1");
   const matches = service.listMatches({ competitionId: "1" });
+  const stages = service.listStages({ competitionId: "1" });
   const stageNames = new Set(matches.data.map((match) => match.stage.name));
 
   assert.equal(competition.data.name, "1. Fußball-Bundesliga 2024/2025");
   assert.equal(stageNames.has("1. Spieltag"), true);
   assert.equal(stageNames.has("34. Spieltag"), true);
+  assert.deepEqual(
+    stages.data.map((stage) => stage.name),
+    ["1. Spieltag", "34. Spieltag"],
+  );
 });
 
 test("AC-03 returns an empty match list when no match satisfies filters", () => {

@@ -142,6 +142,20 @@ export class CommentService {
     return { data: this.toComment(comment) };
   }
 
+  deleteByMatchIds(matchIds: number[]): void {
+    const matchIdSet = new Set(matchIds);
+
+    for (let index = comments.length - 1; index >= 0; index -= 1) {
+      if (matchIdSet.has(comments[index].matchId)) {
+        comments.splice(index, 1);
+      }
+    }
+  }
+
+  countComments(matchId: number): number {
+    return comments.filter((comment) => comment.matchId === matchId).length;
+  }
+
   private requireMatch(matchId: number) {
     const match = this.footballRepository.findMatch(matchId);
 

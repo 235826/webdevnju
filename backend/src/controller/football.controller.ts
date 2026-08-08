@@ -51,6 +51,17 @@ export class FootballController {
     }
   }
 
+  @Get("/stages")
+  async listStages(@Query() query: { competitionId?: unknown }) {
+    const requestId = this.prepareRequest();
+
+    try {
+      return this.footballService.listStages(query);
+    } catch (error) {
+      return this.handleError(error, requestId);
+    }
+  }
+
   @Get("/stages/:stageId/standings")
   async getStageStandings(@Param("stageId") stageId: string) {
     const requestId = this.prepareRequest();

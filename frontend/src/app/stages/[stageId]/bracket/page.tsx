@@ -115,8 +115,8 @@ function MatchCard({ match }: { match: Match }) {
 
 function TeamLine({ name, score }: { name: string; score: number | null }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="font-semibold text-slate-950">{name}</span>
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+      <span className="min-w-0 font-semibold text-slate-950">{name}</span>
       <span className="text-lg font-bold text-slate-950">
         {score === null ? "-" : score}
       </span>

@@ -66,6 +66,10 @@ export type StageResponse = {
   data: Stage;
 };
 
+export type StageListResponse = {
+  data: Stage[];
+};
+
 export type MatchListResponse = {
   data: Match[];
 };

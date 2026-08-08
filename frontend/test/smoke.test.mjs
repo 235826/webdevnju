@@ -126,10 +126,16 @@ test("admin match data UI is wired to the documented API paths", async () => {
   const adminMatches = await readFile(adminMatchesPath, "utf8");
 
   assert.match(adminMatches, /\/api\/auth\/me/);
+  assert.match(adminMatches, /\/api\/competitions/);
+  assert.match(adminMatches, /\/api\/stages/);
   assert.match(adminMatches, /\/api\/teams/);
   assert.match(adminMatches, /\/api\/admin\/matches/);
-  assert.match(adminMatches, /管理比赛/);
+  assert.match(adminMatches, /\/api\/admin\/competitions/);
+  assert.match(adminMatches, /\/api\/admin\/stages/);
+  assert.match(adminMatches, /\/api\/admin\/teams/);
+  assert.match(adminMatches, /后台数据管理/);
   assert.match(adminMatches, /创建比赛/);
+  assert.match(adminMatches, /删除/);
 });
 
 test("favorite UI is wired to the documented API paths", async () => {

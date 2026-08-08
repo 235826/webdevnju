@@ -87,6 +87,16 @@ export class PredictionService {
     ).length;
   }
 
+  deleteByMatchIds(matchIds: number[]): void {
+    const matchIdSet = new Set(matchIds);
+
+    for (let index = predictions.length - 1; index >= 0; index -= 1) {
+      if (matchIdSet.has(predictions[index].matchId)) {
+        predictions.splice(index, 1);
+      }
+    }
+  }
+
   private createActivePrediction(
     userId: number,
     matchId: number,

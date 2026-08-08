@@ -232,7 +232,7 @@ test("用户可以查看积分榜和淘汰赛图", async ({ page }) => {
   await expect(page.getByText("VfB Stuttgart")).toBeVisible();
 });
 
-test("管理员可以创建比赛并在用户侧浏览到新比赛", async ({ page }) => {
+test("管理员可以创建、编辑、删除比赛并在用户侧看到变化", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("用户名").fill("admin");
   await page.getByLabel("密码").fill("Admin12345");
@@ -240,15 +240,27 @@ test("管理员可以创建比赛并在用户侧浏览到新比赛", async ({ pa
   await expect(page.getByText("已登录为 admin")).toBeVisible();
 
   await page.getByRole("link", { name: "管理比赛" }).click();
-  await expect(page.getByRole("heading", { name: "管理比赛" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "后台数据管理" }),
+  ).toBeVisible();
 
-  await page.getByLabel("阶段 ID").fill("1");
+  await page.locator('select[name="stageId"]').selectOption("1");
   await page.getByLabel("主队").selectOption("1");
   await page.getByLabel("客队").selectOption("6");
   await page.getByLabel("开赛时间").fill("2026-11-15T10:00");
   await page.getByLabel("比赛状态").selectOption("SCHEDULED");
   await page.getByRole("button", { name: "创建比赛" }).click();
   await expect(page.getByText("比赛已创建")).toBeVisible();
+
+  const createdMatchRow = page
+    .locator("li")
+    .filter({ hasText: "FC Bayern München vs Bayer 04 Leverkusen" })
+    .last();
+  await expect(createdMatchRow).toBeVisible();
+  await createdMatchRow.getByRole("button", { name: "编辑" }).click();
+  await page.getByLabel("比赛状态").selectOption("LIVE");
+  await page.getByRole("button", { name: "保存比赛" }).click();
+  await expect(page.getByText("比赛已更新")).toBeVisible();
 
   await page.getByRole("link", { name: "查看新比赛" }).click();
   await expect(page.getByRole("heading", { name: "比赛详情" })).toBeVisible();
@@ -258,4 +270,14 @@ test("管理员可以创建比赛并在用户侧浏览到新比赛", async ({ pa
   await expect(
     page.getByRole("link", { name: "Bayer 04 Leverkusen" }),
   ).toBeVisible();
+  await expect(page.getByText("进行中")).toBeVisible();
+
+  await page.goto("/admin/matches");
+  const updatedMatchRow = page
+    .locator("li")
+    .filter({ hasText: "FC Bayern München vs Bayer 04 Leverkusen" })
+    .last();
+  await updatedMatchRow.getByRole("button", { name: "删除" }).click();
+  await expect(page.getByText("比赛已删除")).toBeVisible();
+  await expect(updatedMatchRow).toHaveCount(0);
 });

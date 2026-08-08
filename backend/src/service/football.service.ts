@@ -8,6 +8,7 @@ import {
   MatchListResponse,
   MatchResponse,
   MatchStatus,
+  StageListResponse,
   StageResponse,
   StandingRow,
   StandingsResponse,
@@ -54,6 +55,19 @@ export class FootballService {
     }
 
     return { data: stage };
+  }
+
+  listStages(query: { competitionId?: unknown }): StageListResponse {
+    assertKnownFields(query, ["competitionId"]);
+
+    const competitionId =
+      query.competitionId === undefined
+        ? undefined
+        : parsePositiveInteger(query.competitionId, "competitionId");
+
+    return {
+      data: this.footballRepository.listStages({ competitionId }),
+    };
   }
 
   getStageStandings(stageId: unknown): StandingsResponse {

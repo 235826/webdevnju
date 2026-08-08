@@ -96,6 +96,14 @@ npm run dev
 
 不要提交 `.env`、数据库文件或密钥。
 
+### 数据库
+
+足球基础数据默认保存到 SQLite 文件：
+
+- `FOOTBALL_DATABASE_PATH=./backend/data/football-platform.sqlite`
+
+`backend/data` 已在 `.gitignore` 中忽略；本地启动后生成的 SQLite 文件不应提交。测试和 E2E 会使用内存库或临时文件，避免污染本地开发数据。
+
 ### OpenLigaDB 球队资料
 
 球队外部资料默认调用 OpenLigaDB 官方公开接口：

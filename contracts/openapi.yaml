@@ -210,6 +210,39 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/stages:
+    get:
+      tags: [Stages]
+      operationId: listStages
+      summary: 列出阶段
+      security: []
+      x-spec:
+        file: specs/010-admin-data-management.md
+        acceptanceCriteria: [AC-01]
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - name: competitionId
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          description: 可选赛事过滤；省略时返回全部阶段。
+      responses:
+        "200":
+          description: 阶段列表
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageListResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /api/stages/{stageId}:
     get:
       tags: [Stages]
@@ -978,7 +1011,7 @@ paths:
       tags: [Admin]
       operationId: deleteCompetition
       summary: 删除赛事
-      description: 删除 Competition 时级联删除其 Stage 和 Match；用户侧查询不再返回这些基础数据。
+      description: 删除 Competition 时级联删除其 Stage 和 Match，并同步删除受影响 Match 的预测、收藏和评论；用户侧查询不再返回这些基础数据。
       security:
         - cookieAuth: []
       x-spec:
@@ -1077,7 +1110,7 @@ paths:
       tags: [Admin]
       operationId: deleteStage
       summary: 删除赛事阶段
-      description: 删除 Stage 时级联删除其 Match；用户侧查询不再返回这些基础数据。
+      description: 删除 Stage 时级联删除其 Match，并同步删除受影响 Match 的预测、收藏和评论；用户侧查询不再返回这些基础数据。
       security:
         - cookieAuth: []
       x-spec:
@@ -1176,7 +1209,7 @@ paths:
       tags: [Admin]
       operationId: deleteTeam
       summary: 删除球队
-      description: 删除 Team 时级联删除该队参与的 Match；用户侧查询不再返回这些基础数据。
+      description: 删除 Team 时级联删除该队参与的 Match，并同步删除受影响 Match 的预测、收藏和评论；用户侧查询不再返回这些基础数据。
       security:
         - cookieAuth: []
       x-spec:
@@ -1275,7 +1308,7 @@ paths:
       tags: [Admin]
       operationId: deleteMatch
       summary: 删除比赛
-      description: 删除 Match 后，用户侧比赛查询不再返回该比赛。
+      description: 删除 Match 后，用户侧比赛查询不再返回该比赛，并同步删除该比赛的预测、收藏和评论。
       security:
         - cookieAuth: []
       x-spec:
@@ -1690,6 +1723,15 @@ components:
       properties:
         data:
           $ref: "#/components/schemas/Stage"
+    StageListResponse:
+      type: object
+      additionalProperties: false
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stage"
 
     Team:
       type: object

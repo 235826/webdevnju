@@ -78,6 +78,16 @@ export class FavoriteService {
     ).length;
   }
 
+  deleteByMatchIds(matchIds: number[]): void {
+    const matchIdSet = new Set(matchIds);
+
+    for (let index = favorites.length - 1; index >= 0; index -= 1) {
+      if (matchIdSet.has(favorites[index].matchId)) {
+        favorites.splice(index, 1);
+      }
+    }
+  }
+
   private findFavorite(
     userId: number,
     matchId: number,

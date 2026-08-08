@@ -1,6 +1,6 @@
 # 010：赛事基础数据管理
 
-> 状态：已接受
+> 状态：已验收
 >
 > 关联事项：Web 开发技术课程大作业
 
@@ -37,7 +37,8 @@
 - **BR-04**：Match 必须属于已存在 Stage，并引用已存在球队。
 - **BR-05**：`KNOCKOUT` 比赛可以维护 round / bracket 信息。
 - **BR-06**：球队和比赛不要求种子数据；管理员账号要求种子数据。
-- **BR-07**：基础数据删除采用级联删除语义：删除 Competition 会删除其 Stage 和 Match；删除 Stage 会删除其 Match；删除 Team 会删除该队参与的 Match；删除 Match 只删除该 Match。
+- **BR-07**：基础数据删除采用级联删除语义：删除 Competition 会删除其 Stage 和 Match；删除 Stage 会删除其 Match；删除 Team 会删除该队参与的 Match；删除 Match 会同步删除该比赛的预测、收藏和评论。
+- **BR-08**：后台创建或编辑 Match 时，阶段应来自合同化阶段列表接口，不能要求管理员手写不可发现的阶段 ID。
 
 ## Contract 影响
 
@@ -60,14 +61,15 @@
 | AC    | 验证方式  | 命令或可复现步骤                 | 结果 / 证据                                                                |
 | ----- | --------- | -------------------------------- | -------------------------------------------------------------------------- |
 | AC-01 | API / E2E | 管理员创建基础数据后从用户侧查询 | `backend/test/admin-data.test.mts`；`e2e/app-shell.spec.ts` 管理员创建比赛 |
-| AC-02 | API Test  | 管理员编辑数据后从用户侧查询     | `backend/test/admin-data.test.mts`                                         |
-| AC-03 | API Test  | 管理员删除数据后从用户侧查询     | `backend/test/admin-data.test.mts`                                         |
+| AC-02 | API / E2E | 管理员编辑数据后从用户侧查询     | `backend/test/admin-data.test.mts`；`e2e/app-shell.spec.ts` 管理员编辑比赛 |
+| AC-03 | API / E2E | 管理员删除数据后从用户侧查询     | `backend/test/admin-data.test.mts`；`e2e/app-shell.spec.ts` 管理员删除比赛 |
 | AC-04 | API Test  | 普通用户访问管理接口             | `backend/test/admin-data.test.mts`                                         |
 | AC-05 | API Test  | 未登录访问管理接口               | `backend/test/admin-data.test.mts`                                         |
 | AC-06 | API Test  | 提交非法管理数据                 | `backend/test/admin-data.test.mts`                                         |
 
 ## 验收记录
 
-- `npm run check`：待执行。
-- 人工验收：待执行。
-- 已知限制：当前管理页面只提供 Match 创建入口；Competition、Stage、Team 的管理能力已在 REST API 可用，完整后台表单后续补充。
+- `npm run check`：通过。覆盖格式、lint、类型检查、前端 smoke、后端测试、构建和 Playwright E2E；结果为前端 smoke 10 passed、后端测试 62 passed、E2E 9 passed。
+- HTTP smoke：通过。管理员登录 `200`；创建 Competition / Stage / Team / Match 返回 `201`；公开读取新 Match 返回 `200`；编辑 Match 返回 `200`；删除 Competition 返回 `204`；再读被级联删除的 Match 返回 `404`。
+- 人工验收：通过。管理员可从 `/admin/matches` 使用合同化阶段列表创建、编辑、删除比赛，并从用户侧比赛详情看到变化。
+- 已知限制：当前后台页面支持 Competition、Stage、Team 创建和删除，以及 Match 创建、编辑和删除；Competition、Stage、Team 的编辑仍只在 REST API 可用。当前实现仍为内存存储，服务重启后管理员新增数据会丢失。

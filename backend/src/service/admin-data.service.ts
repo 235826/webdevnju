@@ -12,7 +12,10 @@ import {
   TeamWriteRequest,
 } from "../types/football";
 import { NotFoundError, ValidationError } from "../utils/http-errors";
+import { CommentService } from "./comment.service";
+import { FavoriteService } from "./favorite.service";
 import { FootballRepository } from "./football.repository";
+import { PredictionService } from "./prediction.service";
 
 const STAGE_TYPES: StageType[] = ["GROUP", "LEAGUE", "KNOCKOUT"];
 const MATCH_STATUSES: MatchStatus[] = ["SCHEDULED", "LIVE", "FINISHED"];
@@ -21,6 +24,15 @@ const MATCH_STATUSES: MatchStatus[] = ["SCHEDULED", "LIVE", "FINISHED"];
 export class AdminDataService {
   @Inject()
   footballRepository: FootballRepository = new FootballRepository();
+
+  @Inject()
+  favoriteService: FavoriteService = new FavoriteService();
+
+  @Inject()
+  predictionService: PredictionService = new PredictionService();
+
+  @Inject()
+  commentService: CommentService = new CommentService();
 
   createCompetition(request: CompetitionWriteRequest): CompetitionResponse {
     return {
@@ -49,10 +61,15 @@ export class AdminDataService {
 
   deleteCompetition(competitionId: unknown): void {
     const id = parsePositiveInteger(competitionId, "competitionId");
+    const matchIds = this.footballRepository
+      .listMatches({ competitionId: id })
+      .map((match) => match.id);
 
     if (!this.footballRepository.deleteCompetition(id)) {
       throw new NotFoundError("赛事不存在");
     }
+
+    this.deleteMatchRelations(matchIds);
   }
 
   createStage(request: StageWriteRequest): StageResponse {
@@ -75,10 +92,15 @@ export class AdminDataService {
 
   deleteStage(stageId: unknown): void {
     const id = parsePositiveInteger(stageId, "stageId");
+    const matchIds = this.footballRepository
+      .listMatches({ stageId: id })
+      .map((match) => match.id);
 
     if (!this.footballRepository.deleteStage(id)) {
       throw new NotFoundError("阶段不存在");
     }
+
+    this.deleteMatchRelations(matchIds);
   }
 
   createTeam(request: TeamWriteRequest): TeamResponse {
@@ -103,10 +125,16 @@ export class AdminDataService {
 
   deleteTeam(teamId: unknown): void {
     const id = parsePositiveInteger(teamId, "teamId");
+    const matchIds = this.footballRepository
+      .listMatches({})
+      .filter((match) => match.homeTeam.id === id || match.awayTeam.id === id)
+      .map((match) => match.id);
 
     if (!this.footballRepository.deleteTeam(id)) {
       throw new NotFoundError("球队不存在");
     }
+
+    this.deleteMatchRelations(matchIds);
   }
 
   createMatch(request: MatchWriteRequest): MatchResponse {
@@ -133,6 +161,8 @@ export class AdminDataService {
     if (!this.footballRepository.deleteMatch(id)) {
       throw new NotFoundError("比赛不存在");
     }
+
+    this.deleteMatchRelations([id]);
   }
 
   private parseStageWriteRequest(request: StageWriteRequest) {
@@ -214,6 +244,12 @@ export class AdminDataService {
         "bracketPosition",
       ),
     };
+  }
+
+  private deleteMatchRelations(matchIds: number[]): void {
+    this.favoriteService.deleteByMatchIds(matchIds);
+    this.predictionService.deleteByMatchIds(matchIds);
+    this.commentService.deleteByMatchIds(matchIds);
   }
 }
 

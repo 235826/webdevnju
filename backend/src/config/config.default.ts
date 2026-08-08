@@ -6,6 +6,9 @@ export default {
     port: Number(process.env.BACKEND_PORT ?? 7001),
   },
   database: {
-    path: process.env.DATABASE_PATH ?? "./data/football-platform.sqlite",
+    path:
+      process.env.FOOTBALL_DATABASE_PATH ??
+      process.env.DATABASE_PATH ??
+      "./backend/data/football-platform.sqlite",
   },
 } as MidwayConfig;
