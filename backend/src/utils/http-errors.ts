@@ -56,6 +56,16 @@ export class ConflictError extends Error {
   }
 }
 
+export class PredictionLockedError extends Error {
+  readonly code = "PREDICTION_LOCKED" as const;
+  readonly status = 409;
+
+  constructor(message = "比赛已经开始，预测已锁定") {
+    super(message);
+    this.name = "PredictionLockedError";
+  }
+}
+
 export type ApiErrorCode =
   | "VALIDATION_FAILED"
   | "UNAUTHORIZED"
@@ -123,6 +133,7 @@ function isApiError(error: unknown): error is ApiErrorLike {
     error instanceof ForbiddenError ||
     error instanceof NotFoundError ||
     error instanceof ConflictError ||
+    error instanceof PredictionLockedError ||
     (typeof error === "object" &&
       error !== null &&
       "code" in error &&

@@ -1,6 +1,6 @@
 # 004：比分预测
 
-> 状态：草案
+> 状态：已验收
 >
 > 关联事项：Web 开发技术课程大作业
 
@@ -56,18 +56,18 @@
 
 ## 验证映射
 
-| AC    | 验证方式  | 命令或可复现步骤                 | 结果 / 证据  |
-| ----- | --------- | -------------------------------- | ------------ |
-| AC-01 | API / E2E | 登录后对未开始比赛提交预测       | 待实现后填写 |
-| AC-02 | API Test  | 修改已有预测并查询有效预测       | 待实现后填写 |
-| AC-03 | API Test  | 对已开始比赛创建预测             | 待实现后填写 |
-| AC-04 | API Test  | 对已开始比赛修改预测             | 待实现后填写 |
-| AC-05 | API Test  | 未登录提交预测                   | 待实现后填写 |
-| AC-06 | 并发测试  | 同时提交多个预测请求并检查不变量 | 待实现后填写 |
-| AC-07 | API Test  | 提交非法比分字段                 | 待实现后填写 |
+| AC    | 验证方式  | 命令或可复现步骤                                                                       | 结果 / 证据                                                       |
+| ----- | --------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| AC-01 | API / E2E | `npm run test --workspace backend` 创建有效预测；`npm run test:e2e` 登录后提交预测     | 通过：`backend/test/prediction.test.mts`、`e2e/app-shell.spec.ts` |
+| AC-02 | API / E2E | `npm run test --workspace backend` 修改预测并查询有效预测；`npm run test:e2e` 修改预测 | 通过：新比分成为唯一有效预测                                      |
+| AC-03 | API Test  | `npm run test --workspace backend` 对已开始比赛创建预测                                | 通过：返回 `PREDICTION_LOCKED` / `409` 且不写入                   |
+| AC-04 | API Test  | `npm run test --workspace backend` 对已开始比赛修改预测                                | 通过：返回 `PREDICTION_LOCKED` / `409` 且原预测不变               |
+| AC-05 | API Test  | `npm run test --workspace backend` 未登录提交预测                                      | 通过：返回 `UNAUTHORIZED` / `401`                                 |
+| AC-06 | 并发测试  | `npm run test --workspace backend` 同时提交多个预测请求并检查不变量                    | 通过：同一用户同一比赛最多一条有效预测                            |
+| AC-07 | API Test  | `npm run test --workspace backend` 提交缺失、非整数和负数比分                          | 通过：返回 `VALIDATION_FAILED` / `400` 且不新增有效预测           |
 
 ## 验收记录
 
-- `npm run check`：待执行。
-- 人工验收：待执行。
-- 已知限制：无。
+- `npm run check`：通过。
+- 人工验收：未单独执行；当前验证由后端 API/服务测试、前端烟测和 Playwright 预测流程覆盖。
+- 已知限制：本切片只实现“我的预测”；预测排行、积分奖励、公开展示他人预测和结果结算由后续需求处理。

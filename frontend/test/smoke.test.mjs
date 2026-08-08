@@ -75,3 +75,26 @@ test("team pages are wired to the documented API paths", async () => {
   assert.match(matchDetail, /\/teams\/\$\{state\.match\.homeTeam\.id\}/);
   assert.match(matchDetail, /\/teams\/\$\{state\.match\.awayTeam\.id\}/);
 });
+
+test("prediction UI is wired to the documented API paths", async () => {
+  const matchDetailPath = path.join(
+    process.cwd(),
+    "src/app/matches/[matchId]/page.tsx",
+  );
+  const predictionsPath = path.join(
+    process.cwd(),
+    "src/app/me/predictions/page.tsx",
+  );
+
+  const [matchDetail, predictions] = await Promise.all([
+    readFile(matchDetailPath, "utf8"),
+    readFile(predictionsPath, "utf8"),
+  ]);
+
+  assert.match(matchDetail, /\/api\/matches\/\$\{match\.id\}\/prediction/);
+  assert.match(matchDetail, /\/api\/matches\/\$\{match\.id\}\/predictions/);
+  assert.match(matchDetail, /比赛已经开始，预测已锁定/);
+  assert.match(matchDetail, /我的预测/);
+  assert.match(predictions, /\/api\/users\/me\/predictions/);
+  assert.match(predictions, /暂无预测/);
+});

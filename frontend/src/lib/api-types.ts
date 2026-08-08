@@ -108,3 +108,26 @@ export type TeamListResponse = {
 export type TeamResponse = {
   data: Team;
 };
+
+export type Prediction = {
+  id: number;
+  matchId: number;
+  userId: number;
+  homeScore: number;
+  awayScore: number;
+  isActive: boolean;
+  createdAt: string;
+  supersededAt: string | null;
+};
+
+export type PredictionResponse = {
+  data: Prediction;
+};
+
+export type NullablePredictionResponse = {
+  data: Prediction | null;
+};
+
+export type PredictionListResponse = {
+  data: Prediction[];
+};

@@ -85,3 +85,31 @@ export type MatchListQuery = {
   stageId?: unknown;
   status?: unknown;
 };
+
+export type Prediction = {
+  id: number;
+  matchId: number;
+  userId: number;
+  homeScore: number;
+  awayScore: number;
+  isActive: boolean;
+  createdAt: string;
+  supersededAt: string | null;
+};
+
+export type ScoreLineRequest = {
+  homeScore?: unknown;
+  awayScore?: unknown;
+};
+
+export type PredictionResponse = {
+  data: Prediction;
+};
+
+export type NullablePredictionResponse = {
+  data: Prediction | null;
+};
+
+export type PredictionListResponse = {
+  data: Prediction[];
+};
