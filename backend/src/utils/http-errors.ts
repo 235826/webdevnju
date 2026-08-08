@@ -16,9 +16,59 @@ export class ValidationError extends Error {
   }
 }
 
-type ValidationErrorLike = {
-  code: "VALIDATION_FAILED";
-  status: 400;
+export class UnauthorizedError extends Error {
+  readonly code = "UNAUTHORIZED" as const;
+  readonly status = 401;
+
+  constructor(message = "请先登录") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+export class ForbiddenError extends Error {
+  readonly code = "FORBIDDEN" as const;
+  readonly status = 403;
+
+  constructor(message = "没有权限执行该操作") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
+export class NotFoundError extends Error {
+  readonly code = "NOT_FOUND" as const;
+  readonly status = 404;
+
+  constructor(message = "请求的资源不存在") {
+    super(message);
+    this.name = "NotFoundError";
+  }
+}
+
+export class ConflictError extends Error {
+  readonly code = "CONFLICT" as const;
+  readonly status = 409;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
+export type ApiErrorCode =
+  | "VALIDATION_FAILED"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "PREDICTION_LOCKED"
+  | "UNSUPPORTED_STAGE_TYPE"
+  | "INTERNAL_ERROR";
+
+type ApiErrorLike = {
+  code: ApiErrorCode;
+  status: 400 | 401 | 403 | 404 | 409;
   message: string;
   details?: ErrorDetail[];
 };
@@ -27,20 +77,20 @@ export function buildApiErrorResponse(
   error: unknown,
   requestId: string,
 ): {
-  status: 400 | 500;
-  errorCode: "VALIDATION_FAILED" | "INTERNAL_ERROR";
+  status: 400 | 401 | 403 | 404 | 409 | 500;
+  errorCode: ApiErrorCode;
   body: {
     error: {
-      code: "VALIDATION_FAILED" | "INTERNAL_ERROR";
+      code: ApiErrorCode;
       message: string;
       details?: ErrorDetail[];
     };
     requestId: string;
   };
 } {
-  if (isValidationError(error)) {
+  if (isApiError(error)) {
     return {
-      status: 400,
+      status: error.status,
       errorCode: error.code,
       body: {
         error: {
@@ -66,16 +116,30 @@ export function buildApiErrorResponse(
   };
 }
 
-function isValidationError(error: unknown): error is ValidationErrorLike {
+function isApiError(error: unknown): error is ApiErrorLike {
   return (
     error instanceof ValidationError ||
+    error instanceof UnauthorizedError ||
+    error instanceof ForbiddenError ||
+    error instanceof NotFoundError ||
+    error instanceof ConflictError ||
     (typeof error === "object" &&
       error !== null &&
       "code" in error &&
-      error.code === "VALIDATION_FAILED" &&
+      typeof error.code === "string" &&
       "status" in error &&
-      error.status === 400 &&
+      isApiErrorStatus(error.status) &&
       "message" in error &&
       typeof error.message === "string")
+  );
+}
+
+function isApiErrorStatus(status: unknown): status is ApiErrorLike["status"] {
+  return (
+    status === 400 ||
+    status === 401 ||
+    status === 403 ||
+    status === 404 ||
+    status === 409
   );
 }

@@ -1,6 +1,6 @@
 # 001：用户登录与身份识别
 
-> 状态：草案
+> 状态：已验收
 >
 > 关联事项：Web 开发技术课程大作业
 
@@ -53,17 +53,17 @@
 
 ## 验证映射
 
-| AC    | 验证方式  | 命令或可复现步骤               | 结果 / 证据  |
-| ----- | --------- | ------------------------------ | ------------ |
-| AC-01 | API / E2E | 调用注册接口并登录             | 待实现后填写 |
-| AC-02 | API / E2E | 登录后调用当前用户接口         | 待实现后填写 |
-| AC-03 | API Test  | 未带认证访问预测或收藏写入接口 | 待实现后填写 |
-| AC-04 | API Test  | 普通用户访问管理接口           | 待实现后填写 |
-| AC-05 | API Test  | 使用种子管理员账号登录         | 待实现后填写 |
-| AC-06 | API Test  | 使用错误凭据登录并检查响应     | 待实现后填写 |
+| AC    | 验证方式 | 命令或可复现步骤                                                        | 结果 / 证据                                |
+| ----- | -------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| AC-01 | API Test | `npm run test --workspace backend` 中注册普通用户并检查响应不含密码散列 | 通过：`backend/test/auth.test.mts`         |
+| AC-02 | API Test | `npm run test --workspace backend` 中登录后使用会话查询当前用户         | 通过：`backend/test/auth.test.mts`         |
+| AC-03 | API Test | `npm run test --workspace backend` 中未带会话调用受保护能力             | 通过：返回 `UNAUTHORIZED` / `401`          |
+| AC-04 | API Test | `npm run test --workspace backend` 中普通用户调用管理员权限守卫         | 通过：返回 `FORBIDDEN` / `403`             |
+| AC-05 | API Test | `npm run test --workspace backend` 中使用种子管理员 `admin` 登录        | 通过：当前用户角色为 `ADMIN`               |
+| AC-06 | API Test | `npm run test --workspace backend` 中使用错误凭据登录并检查错误体       | 通过：错误体不含密码、散列、存储路径或堆栈 |
 
 ## 验收记录
 
-- `npm run check`：待执行。
-- 人工验收：待执行。
-- 已知限制：无。
+- `npm run check`：通过（需在沙箱外运行，Playwright 测试服务器需要监听本地端口）。
+- 人工验收：未单独执行；当前验证由后端 API/服务测试、前端烟测和 Playwright 首页检查覆盖。
+- 已知限制：管理员专属业务接口将在 `specs/010-admin-data-management.md` 中实现；本切片先提供并验证可复用管理员权限守卫。

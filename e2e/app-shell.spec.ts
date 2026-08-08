@@ -11,3 +11,19 @@ test("首页展示足球赛事平台骨架并保留 API 检查入口", async ({ 
     "/api/health",
   );
 });
+
+test("用户可以浏览赛事、阶段和比赛详情", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("link", { name: "浏览赛事" }).click();
+  await expect(page.getByRole("heading", { name: "赛事列表" })).toBeVisible();
+
+  await page.getByRole("link", { name: "校园冠军杯" }).click();
+  await expect(page.getByRole("heading", { name: "校园冠军杯" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "A 组" })).toBeVisible();
+
+  await page.getByRole("link", { name: /软件学院 vs 人工智能学院/ }).click();
+  await expect(page.getByRole("heading", { name: "比赛详情" })).toBeVisible();
+  await expect(page.getByText("校园冠军杯 · A 组")).toBeVisible();
+  await expect(page.getByText("未开始")).toBeVisible();
+});
