@@ -7,6 +7,8 @@ import {
   MatchResponse,
   MatchStatus,
   StageResponse,
+  TeamListResponse,
+  TeamResponse,
 } from "../types/football";
 import { NotFoundError, ValidationError } from "../utils/http-errors";
 import { FootballRepository } from "./football.repository";
@@ -44,6 +46,23 @@ export class FootballService {
     }
 
     return { data: stage };
+  }
+
+  listTeams(): TeamListResponse {
+    return {
+      data: this.footballRepository.listTeams(),
+    };
+  }
+
+  getTeam(teamId: unknown): TeamResponse {
+    const id = parsePositiveInteger(teamId, "teamId");
+    const team = this.footballRepository.findTeam(id);
+
+    if (!team) {
+      throw new NotFoundError("球队不存在");
+    }
+
+    return { data: team };
   }
 
   listMatches(query: MatchListQuery): MatchListResponse {

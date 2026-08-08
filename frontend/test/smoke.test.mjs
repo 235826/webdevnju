@@ -51,3 +51,27 @@ test("competition browsing pages are wired to the documented API paths", async (
   assert.match(competitionDetail, /该赛事暂无比赛/);
   assert.match(matchDetail, /比赛详情/);
 });
+
+test("team pages are wired to the documented API paths", async () => {
+  const teamsPath = path.join(process.cwd(), "src/app/teams/page.tsx");
+  const teamDetailPath = path.join(
+    process.cwd(),
+    "src/app/teams/[teamId]/page.tsx",
+  );
+  const matchDetailPath = path.join(
+    process.cwd(),
+    "src/app/matches/[matchId]/page.tsx",
+  );
+
+  const [teams, teamDetail, matchDetail] = await Promise.all([
+    readFile(teamsPath, "utf8"),
+    readFile(teamDetailPath, "utf8"),
+    readFile(matchDetailPath, "utf8"),
+  ]);
+
+  assert.match(teams, /\/api\/teams/);
+  assert.match(teamDetail, /\/api\/teams\/\$\{teamId\}/);
+  assert.match(teamDetail, /外部球队资料暂不可用/);
+  assert.match(matchDetail, /\/teams\/\$\{state\.match\.homeTeam\.id\}/);
+  assert.match(matchDetail, /\/teams\/\$\{state\.match\.awayTeam\.id\}/);
+});

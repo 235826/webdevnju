@@ -72,6 +72,14 @@ export type MatchResponse = {
   data: Match;
 };
 
+export type TeamListResponse = {
+  data: Team[];
+};
+
+export type TeamResponse = {
+  data: Team;
+};
+
 export type MatchListQuery = {
   competitionId?: unknown;
   stageId?: unknown;

@@ -222,6 +222,17 @@ export class FootballRepository {
       );
   }
 
+  listTeams(): Team[] {
+    return [...teams].sort(
+      (left, right) =>
+        left.name.localeCompare(right.name, "zh-CN") || left.id - right.id,
+    );
+  }
+
+  findTeam(id: number): Team | undefined {
+    return teams.find((team) => team.id === id);
+  }
+
   findMatch(id: number): Match | undefined {
     const match = matches.find((candidate) => candidate.id === id);
 
@@ -274,7 +285,7 @@ export class FootballRepository {
   }
 
   private requireTeam(id: number): Team {
-    const team = teams.find((candidate) => candidate.id === id);
+    const team = this.findTeam(id);
 
     if (!team) {
       throw new Error(`Seed team ${id} is missing`);

@@ -100,3 +100,11 @@ export type MatchListResponse = {
 export type MatchResponse = {
   data: Match;
 };
+
+export type TeamListResponse = {
+  data: Team[];
+};
+
+export type TeamResponse = {
+  data: Team;
+};

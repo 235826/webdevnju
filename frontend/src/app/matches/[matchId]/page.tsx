@@ -73,8 +73,20 @@ export default function MatchDetailPage() {
             <p className="text-sm font-semibold text-emerald-700">
               {state.match.competition.name} · {state.match.stage.name}
             </p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-950">
-              {state.match.homeTeam.name} vs {state.match.awayTeam.name}
+            <h2 className="mt-2 flex flex-wrap items-center gap-2 text-3xl font-bold text-slate-950">
+              <Link
+                className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700"
+                href={`/teams/${state.match.homeTeam.id}`}
+              >
+                {state.match.homeTeam.name}
+              </Link>
+              <span>vs</span>
+              <Link
+                className="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700"
+                href={`/teams/${state.match.awayTeam.id}`}
+              >
+                {state.match.awayTeam.name}
+              </Link>
             </h2>
           </div>
           <dl className="grid gap-4 sm:grid-cols-2">

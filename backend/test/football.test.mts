@@ -96,3 +96,47 @@ test("AC-05 returns safe errors for missing resources and invalid filters", asyn
   assert.equal("error" in invalidQuery, true);
   assert.doesNotMatch(JSON.stringify(invalidQuery), /Seed|Error:|repository/i);
 });
+
+test("003 AC-01 lists teams with stable name and id sorting", () => {
+  const service = createFootballService();
+  const response = service.listTeams();
+  const names = response.data.map((team) => team.name);
+
+  assert.deepEqual(names, [
+    "城市校友队",
+    "电子工程学院",
+    "人工智能学院",
+    "软件学院",
+  ]);
+  assert.equal(response.data[0].shortName, "校友");
+  assert.equal("openLigaDbTeamId" in response.data[0], true);
+});
+
+test("003 AC-02 and AC-04 return local team details without external data", () => {
+  const service = createFootballService();
+  const response = service.getTeam("1");
+
+  assert.equal(response.data.name, "软件学院");
+  assert.equal(response.data.shortName, "软件");
+  assert.equal(response.data.logoUrl, null);
+  assert.equal(response.data.openLigaDbTeamId, null);
+});
+
+test("003 AC-03 match details reference the unified team data", () => {
+  const service = createFootballService();
+  const match = service.getMatch("1").data;
+  const homeTeam = service.getTeam(String(match.homeTeam.id)).data;
+  const awayTeam = service.getTeam(String(match.awayTeam.id)).data;
+
+  assert.deepEqual(match.homeTeam, homeTeam);
+  assert.deepEqual(match.awayTeam, awayTeam);
+});
+
+test("003 team controller returns safe 404 errors", async () => {
+  const { controller } = createController();
+  const missingTeam = await controller.getTeam("999");
+
+  assert.equal(controller.ctx?.status, 404);
+  assert.equal("error" in missingTeam, true);
+  assert.doesNotMatch(JSON.stringify(missingTeam), /Seed|Error:|repository/i);
+});

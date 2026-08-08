@@ -46,6 +46,28 @@ export class FootballController {
     }
   }
 
+  @Get("/teams")
+  async listTeams() {
+    const requestId = this.prepareRequest();
+
+    try {
+      return this.footballService.listTeams();
+    } catch (error) {
+      return this.handleError(error, requestId);
+    }
+  }
+
+  @Get("/teams/:teamId")
+  async getTeam(@Param("teamId") teamId: string) {
+    const requestId = this.prepareRequest();
+
+    try {
+      return this.footballService.getTeam(teamId);
+    } catch (error) {
+      return this.handleError(error, requestId);
+    }
+  }
+
   @Get("/matches")
   async listMatches(@Query() query: MatchListQuery) {
     const requestId = this.prepareRequest();

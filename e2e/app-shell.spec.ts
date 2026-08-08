@@ -27,3 +27,22 @@ test("用户可以浏览赛事、阶段和比赛详情", async ({ page }) => {
   await expect(page.getByText("校园冠军杯 · A 组")).toBeVisible();
   await expect(page.getByText("未开始")).toBeVisible();
 });
+
+test("用户可以浏览球队列表、详情，并从比赛详情进入球队资料", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await page.getByRole("link", { name: "球队资料" }).click();
+  await expect(page.getByRole("heading", { name: "球队资料" })).toBeVisible();
+
+  await page.getByRole("link", { name: /软件学院/ }).click();
+  await expect(page.getByRole("heading", { name: "软件学院" })).toBeVisible();
+  await expect(page.getByText("外部球队资料暂不可用")).toBeVisible();
+
+  await page.goto("/matches/1");
+  await page.getByRole("link", { name: "人工智能学院" }).click();
+  await expect(
+    page.getByRole("heading", { name: "人工智能学院" }),
+  ).toBeVisible();
+});
