@@ -138,6 +138,24 @@ test("favorite UI is wired to the documented API paths", async () => {
   assert.match(favorites, /暂无收藏/);
 });
 
+test("comment UI is wired to the documented API paths", async () => {
+  const matchDetailPath = path.join(
+    process.cwd(),
+    "src/app/matches/[matchId]/page.tsx",
+  );
+  const matchDetail = await readFile(matchDetailPath, "utf8");
+
+  assert.match(matchDetail, /\/api\/matches\/\$\{match\.id\}\/comments/);
+  assert.match(matchDetail, /\/api\/comments\/\$\{commentId\}/);
+  assert.match(
+    matchDetail,
+    /\/api\/admin\/comments\/\$\{commentId\}\/moderation/,
+  );
+  assert.match(matchDetail, /评论讨论/);
+  assert.match(matchDetail, /发表评论/);
+  assert.match(matchDetail, /暂无评论/);
+});
+
 test("standings and bracket pages are wired to the documented API paths", async () => {
   const standingsPath = path.join(
     process.cwd(),

@@ -153,6 +153,35 @@ test("登录用户可以收藏、查看并取消收藏比赛", async ({ page }) 
   await expect(page.getByText("暂无收藏。")).toBeVisible();
 });
 
+test("登录用户可以发表评论并编辑自己的评论", async ({ page }) => {
+  const username = `comment_${Date.now()}`;
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "注册" }).first().click();
+  await page.getByLabel("用户名").fill(username);
+  await page.getByLabel("密码").fill("password123");
+  await page.getByRole("button", { name: "注册" }).last().click();
+  await page.getByRole("button", { name: "登录" }).first().click();
+  await page.getByLabel("用户名").fill(username);
+  await page.getByLabel("密码").fill("password123");
+  await page.getByRole("button", { name: "登录" }).last().click();
+  await expect(
+    page.getByText(new RegExp(`已登录为 ${username}`)),
+  ).toBeVisible();
+
+  await page.goto("/matches/2");
+  await expect(page.getByRole("heading", { name: "评论讨论" })).toBeVisible();
+  await page.getByLabel("评论内容").fill("这场比赛节奏很快");
+  await page.getByRole("button", { name: "发表评论" }).click();
+  await expect(page.getByText("这场比赛节奏很快")).toBeVisible();
+  await expect(page.getByText("待审核")).toBeVisible();
+
+  await page.getByRole("button", { name: "编辑" }).click();
+  await page.locator("textarea").last().fill("这场比赛攻防转换很快");
+  await page.getByRole("button", { name: "保存评论" }).click();
+  await expect(page.getByText("这场比赛攻防转换很快")).toBeVisible();
+});
+
 test("用户可以查看积分榜和淘汰赛图", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("用户名").fill("admin");

@@ -179,3 +179,29 @@ export type FavoriteResponse = {
 export type FavoriteListResponse = {
   data: Favorite[];
 };
+
+export type CommentModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export type Comment = {
+  id: number;
+  matchId: number;
+  author: User;
+  content: string;
+  moderationStatus: CommentModerationStatus;
+  visible: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CommentResponse = {
+  data: Comment;
+};
+
+export type CommentPageResponse = {
+  data: Comment[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+};

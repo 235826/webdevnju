@@ -11,6 +11,10 @@ import {
 } from "../../../lib/api-client";
 import type {
   AuthResponse,
+  Comment,
+  CommentModerationStatus,
+  CommentPageResponse,
+  CommentResponse,
   FavoriteListResponse,
   FavoriteResponse,
   Match,
@@ -144,6 +148,7 @@ export default function MatchDetailPage() {
             </dl>
           </article>
           <FavoritePanel match={state.match} />
+          <CommentPanel currentUser={state.currentUser} match={state.match} />
           <PredictionPanel match={state.match} />
           <AdminResultPanel
             currentUser={state.currentUser}
@@ -160,6 +165,358 @@ export default function MatchDetailPage() {
       ) : null}
     </main>
   );
+}
+
+type CommentState =
+  | { kind: "loading" }
+  | {
+      kind: "ready";
+      comments: Comment[];
+      page: number;
+      pageSize: number;
+      total: number;
+      message: string | null;
+    }
+  | { kind: "error"; message: string };
+
+function CommentPanel({
+  currentUser,
+  match,
+}: {
+  currentUser: User | null;
+  match: Match;
+}) {
+  const [state, setState] = useState<CommentState>({ kind: "loading" });
+  const [content, setContent] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const pageSize = 5;
+
+  useEffect(() => {
+    void loadComments(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match.id]);
+
+  async function loadComments(page: number) {
+    setState({ kind: "loading" });
+
+    try {
+      const payload = await fetchJson<CommentPageResponse>(
+        `/api/matches/${match.id}/comments?page=${page}&pageSize=${pageSize}`,
+      );
+      setState({
+        kind: "ready",
+        comments: payload.data,
+        page: payload.pagination.page,
+        pageSize: payload.pagination.pageSize,
+        total: payload.pagination.total,
+        message: payload.data.length === 0 ? "暂无评论。" : null,
+      });
+    } catch (error) {
+      setState({
+        kind: "error",
+        message: error instanceof Error ? error.message : "评论加载失败",
+      });
+    }
+  }
+
+  async function submitComment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!currentUser) {
+      return;
+    }
+
+    const previousState = state;
+    setState(commentSavingState(previousState, "正在发表评论"));
+
+    try {
+      await sendJson<CommentResponse>(
+        `/api/matches/${match.id}/comments`,
+        "POST",
+        { content },
+      );
+      setContent("");
+      await loadComments(1);
+    } catch (error) {
+      setState(commentErrorState(previousState, error, "评论发布失败"));
+    }
+  }
+
+  async function submitEdit(commentId: number) {
+    if (!currentUser) {
+      return;
+    }
+
+    const previousState = state;
+    setState(commentSavingState(previousState, "正在保存评论"));
+
+    try {
+      await sendJson<CommentResponse>(`/api/comments/${commentId}`, "PUT", {
+        content: editingContent,
+      });
+      setEditingId(null);
+      setEditingContent("");
+      await loadComments(
+        previousState.kind === "ready" ? previousState.page : 1,
+      );
+    } catch (error) {
+      setState(commentErrorState(previousState, error, "评论保存失败"));
+    }
+  }
+
+  async function deleteComment(commentId: number) {
+    const previousState = state;
+    setState(commentSavingState(previousState, "正在删除评论"));
+
+    try {
+      await sendEmpty(`/api/comments/${commentId}`, "DELETE");
+      await loadComments(
+        previousState.kind === "ready" ? previousState.page : 1,
+      );
+    } catch (error) {
+      setState(commentErrorState(previousState, error, "评论删除失败"));
+    }
+  }
+
+  async function moderateComment(
+    commentId: number,
+    moderationStatus: CommentModerationStatus,
+  ) {
+    const previousState = state;
+    setState(commentSavingState(previousState, "正在审核评论"));
+
+    try {
+      await sendJson<CommentResponse>(
+        `/api/admin/comments/${commentId}/moderation`,
+        "PUT",
+        { moderationStatus },
+      );
+      await loadComments(
+        previousState.kind === "ready" ? previousState.page : 1,
+      );
+    } catch (error) {
+      setState(commentErrorState(previousState, error, "评论审核失败"));
+    }
+  }
+
+  const page = state.kind === "ready" ? state.page : 1;
+  const pageCount =
+    state.kind === "ready"
+      ? Math.max(1, Math.ceil(state.total / state.pageSize))
+      : 1;
+
+  return (
+    <section className="grid gap-5 rounded border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-semibold text-slate-950">评论讨论</h2>
+        <p className="text-sm text-slate-500">
+          第 {page} / {pageCount} 页
+        </p>
+      </div>
+
+      {currentUser ? (
+        <form className="grid gap-3" onSubmit={submitComment}>
+          <label className="grid gap-2 text-sm font-medium text-slate-700">
+            评论内容
+            <textarea
+              className="min-h-24 rounded border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+              maxLength={1000}
+              name="commentContent"
+              onChange={(event) => setContent(event.target.value)}
+              required
+              value={content}
+            />
+          </label>
+          <button
+            className="w-fit rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            disabled={state.kind === "loading"}
+            type="submit"
+          >
+            发表评论
+          </button>
+        </form>
+      ) : (
+        <p className="text-slate-600">登录后可以发表评论。</p>
+      )}
+
+      {state.kind === "loading" ? (
+        <p role="status" className="text-slate-600">
+          正在加载评论
+        </p>
+      ) : null}
+
+      {state.kind === "error" ? (
+        <p role="alert" className="text-red-700">
+          {state.message}
+        </p>
+      ) : null}
+
+      {state.kind === "ready" && state.message ? (
+        <p role="status" className="text-slate-600">
+          {state.message}
+        </p>
+      ) : null}
+
+      {state.kind === "ready" && state.comments.length > 0 ? (
+        <ul className="grid gap-3">
+          {state.comments.map((comment) => {
+            const canEdit = currentUser?.id === comment.author.id;
+            const canModerate = currentUser?.role === "ADMIN";
+            const isEditing = editingId === comment.id;
+
+            return (
+              <li
+                className="grid gap-3 rounded border border-slate-200 p-4"
+                key={comment.id}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-950">
+                      {comment.author.username}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {formatDateTime(comment.createdAt)} ·{" "}
+                      {moderationStatusLabel(comment.moderationStatus)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {canEdit ? (
+                      <>
+                        <button
+                          className="rounded border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-950 hover:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                          onClick={() => {
+                            setEditingId(comment.id);
+                            setEditingContent(comment.content);
+                          }}
+                          type="button"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:border-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+                          onClick={() => deleteComment(comment.id)}
+                          type="button"
+                        >
+                          删除
+                        </button>
+                      </>
+                    ) : null}
+                    {canModerate ? (
+                      <>
+                        <button
+                          className="rounded border border-slate-300 px-3 py-1 text-sm font-semibold text-slate-950 hover:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                          onClick={() =>
+                            moderateComment(comment.id, "APPROVED")
+                          }
+                          type="button"
+                        >
+                          通过
+                        </button>
+                        <button
+                          className="rounded border border-red-300 px-3 py-1 text-sm font-semibold text-red-700 hover:border-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+                          onClick={() =>
+                            moderateComment(comment.id, "REJECTED")
+                          }
+                          type="button"
+                        >
+                          驳回
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+                {isEditing ? (
+                  <form
+                    className="grid gap-3"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void submitEdit(comment.id);
+                    }}
+                  >
+                    <textarea
+                      className="min-h-20 rounded border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                      maxLength={1000}
+                      onChange={(event) =>
+                        setEditingContent(event.target.value)
+                      }
+                      required
+                      value={editingContent}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="rounded bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                        type="submit"
+                      >
+                        保存评论
+                      </button>
+                      <button
+                        className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+                        onClick={() => setEditingId(null)}
+                        type="button"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="whitespace-pre-wrap leading-7 text-slate-700">
+                    {comment.content}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+
+      {state.kind === "ready" ? (
+        <div className="flex flex-wrap gap-3">
+          <button
+            className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:text-slate-400"
+            disabled={state.page <= 1}
+            onClick={() => loadComments(state.page - 1)}
+            type="button"
+          >
+            上一页
+          </button>
+          <button
+            className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-950 hover:border-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:text-slate-400"
+            disabled={state.page >= pageCount}
+            onClick={() => loadComments(state.page + 1)}
+            type="button"
+          >
+            下一页
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function commentSavingState(
+  state: CommentState,
+  message: string,
+): CommentState {
+  if (state.kind !== "ready") {
+    return state;
+  }
+
+  return { ...state, message };
+}
+
+function commentErrorState(
+  state: CommentState,
+  error: unknown,
+  fallback: string,
+): CommentState {
+  const message = error instanceof Error ? error.message : fallback;
+
+  if (state.kind !== "ready") {
+    return { kind: "error", message };
+  }
+
+  return { ...state, message };
 }
 
 type FavoriteState =
@@ -611,6 +968,16 @@ function matchStatusLabel(status: string): string {
       SCHEDULED: "未开始",
       LIVE: "进行中",
       FINISHED: "已结束",
+    }[status] ?? status
+  );
+}
+
+function moderationStatusLabel(status: string): string {
+  return (
+    {
+      PENDING: "待审核",
+      APPROVED: "已通过",
+      REJECTED: "已驳回",
     }[status] ?? status
   );
 }

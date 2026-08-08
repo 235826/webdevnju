@@ -1,3 +1,5 @@
+import type { PublicUser } from "./auth";
+
 export type StageType = "GROUP" | "LEAGUE" | "KNOCKOUT";
 export type MatchStatus = "SCHEDULED" | "LIVE" | "FINISHED";
 
@@ -162,4 +164,45 @@ export type FavoriteResponse = {
 
 export type FavoriteListResponse = {
   data: Favorite[];
+};
+
+export type CommentModerationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+export type Comment = {
+  id: number;
+  matchId: number;
+  author: PublicUser;
+  content: string;
+  moderationStatus: CommentModerationStatus;
+  visible: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CommentWriteRequest = {
+  content?: unknown;
+};
+
+export type ModerateCommentRequest = {
+  moderationStatus?: unknown;
+};
+
+export type CommentResponse = {
+  data: Comment;
+};
+
+export type Pagination = {
+  page: number;
+  pageSize: number;
+  total: number;
+};
+
+export type CommentPageResponse = {
+  data: Comment[];
+  pagination: Pagination;
+};
+
+export type CommentListQuery = {
+  page?: unknown;
+  pageSize?: unknown;
 };
