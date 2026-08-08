@@ -75,7 +75,9 @@ test("team pages are wired to the documented API paths", async () => {
 
   assert.match(teams, /\/api\/teams/);
   assert.match(teamDetail, /\/api\/teams\/\$\{teamId\}/);
-  assert.match(teamDetail, /外部球队资料暂不可用/);
+  assert.match(teamDetail, /\/api\/teams\/\$\{teamId\}\/external-profile/);
+  assert.match(teamDetail, /OpenLigaDB 补充资料/);
+  assert.match(teamDetail, /暂无可匹配的 OpenLigaDB 球队资料/);
   assert.match(matchDetail, /\/teams\/\$\{state\.match\.homeTeam\.id\}/);
   assert.match(matchDetail, /\/teams\/\$\{state\.match\.awayTeam\.id\}/);
 });

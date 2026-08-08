@@ -109,6 +109,23 @@ export type TeamResponse = {
   data: Team;
 };
 
+export type ExternalProfileStatus = "AVAILABLE" | "UNAVAILABLE" | "NO_MATCH";
+
+export type ExternalTeamProfile = {
+  provider: "OpenLigaDB";
+  providerTeamId: number;
+  name: string;
+  shortName: string | null;
+  logoUrl: string | null;
+  websiteUrl: string | null;
+};
+
+export type ExternalTeamProfileResponse = {
+  status: ExternalProfileStatus;
+  data: ExternalTeamProfile | null;
+  message: string | null;
+};
+
 export type StandingRow = {
   rank: number;
   team: Team;

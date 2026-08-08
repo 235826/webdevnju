@@ -4,11 +4,19 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { fetchJson } from "../../../lib/api-client";
-import type { Team, TeamResponse } from "../../../lib/api-types";
+import type {
+  ExternalTeamProfileResponse,
+  Team,
+  TeamResponse,
+} from "../../../lib/api-types";
 
 type ViewState =
   | { kind: "loading" }
-  | { kind: "success"; team: Team }
+  | {
+      kind: "success";
+      team: Team;
+      externalProfile: ExternalTeamProfileResponse;
+    }
   | { kind: "error"; message: string };
 
 export default function TeamDetailPage() {
@@ -19,10 +27,19 @@ export default function TeamDetailPage() {
   useEffect(() => {
     let active = true;
 
-    fetchJson<TeamResponse>(`/api/teams/${teamId}`)
-      .then((payload) => {
+    Promise.all([
+      fetchJson<TeamResponse>(`/api/teams/${teamId}`),
+      fetchJson<ExternalTeamProfileResponse>(
+        `/api/teams/${teamId}/external-profile`,
+      ),
+    ])
+      .then(([teamPayload, externalProfile]) => {
         if (active) {
-          setState({ kind: "success", team: payload.data });
+          setState({
+            kind: "success",
+            team: teamPayload.data,
+            externalProfile,
+          });
         }
       })
       .catch((error: unknown) => {
@@ -66,25 +83,83 @@ export default function TeamDetailPage() {
       ) : null}
 
       {state.kind === "success" ? (
-        <article className="grid gap-6 rounded border border-slate-200 bg-white p-6">
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <DetailItem label="球队名称" value={state.team.name} />
-            <DetailItem label="简称" value={state.team.shortName ?? "暂无"} />
-            <DetailItem
-              label="OpenLigaDB ID"
-              value={String(state.team.openLigaDbTeamId ?? "暂无")}
-            />
-            <DetailItem
-              label="Logo"
-              value={state.team.logoUrl ?? "暂无本地 Logo"}
-            />
-          </dl>
-          <p className="rounded border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            外部球队资料暂不可用，当前展示本地权威资料。
-          </p>
-        </article>
+        <div className="grid gap-6">
+          <article className="grid gap-6 rounded border border-slate-200 bg-white p-6">
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <DetailItem label="球队名称" value={state.team.name} />
+              <DetailItem label="简称" value={state.team.shortName ?? "暂无"} />
+              <DetailItem
+                label="OpenLigaDB ID"
+                value={String(state.team.openLigaDbTeamId ?? "暂无")}
+              />
+              <DetailItem
+                label="Logo"
+                value={state.team.logoUrl ?? "暂无本地 Logo"}
+              />
+            </dl>
+          </article>
+
+          <ExternalProfilePanel profile={state.externalProfile} />
+        </div>
       ) : null}
     </main>
+  );
+}
+
+function ExternalProfilePanel({
+  profile,
+}: {
+  profile: ExternalTeamProfileResponse;
+}) {
+  if (profile.status !== "AVAILABLE" || !profile.data) {
+    return (
+      <section className="grid gap-3 rounded border border-amber-200 bg-amber-50 p-6">
+        <h2 className="text-2xl font-semibold text-slate-950">
+          OpenLigaDB 补充资料
+        </h2>
+        <p className="text-sm text-amber-900">
+          {profile.message ??
+            (profile.status === "NO_MATCH"
+              ? "暂无可匹配的 OpenLigaDB 球队资料"
+              : "外部球队资料暂不可用，当前展示本地权威资料")}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="grid gap-5 rounded border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-start gap-5">
+        {profile.data.logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            alt={`${profile.data.name} logo`}
+            className="h-20 w-20 rounded border border-slate-200 object-contain p-2"
+            src={profile.data.logoUrl}
+          />
+        ) : null}
+        <div className="grid gap-4">
+          <h2 className="text-2xl font-semibold text-slate-950">
+            OpenLigaDB 补充资料
+          </h2>
+          <dl className="grid gap-4 sm:grid-cols-2">
+            <DetailItem label="外部名称" value={profile.data.name} />
+            <DetailItem
+              label="外部简称"
+              value={profile.data.shortName ?? "暂无"}
+            />
+            <DetailItem
+              label="Provider ID"
+              value={String(profile.data.providerTeamId)}
+            />
+            <DetailItem
+              label="官网"
+              value={profile.data.websiteUrl ?? "暂无"}
+            />
+          </dl>
+        </div>
+      </div>
+    </section>
   );
 }
 

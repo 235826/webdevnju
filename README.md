@@ -95,3 +95,22 @@ npm run dev
 ```
 
 不要提交 `.env`、数据库文件或密钥。
+
+### OpenLigaDB 球队资料
+
+球队外部资料默认调用 OpenLigaDB 官方公开接口：
+
+- `OPENLIGADB_BASE_URL=https://api.openligadb.de`
+- `OPENLIGADB_LEAGUE_SHORTCUT=bl1`
+- `OPENLIGADB_LEAGUE_SEASON=2024`
+- `OPENLIGADB_TIMEOUT_MS=2500`
+
+后端使用 `GET /getavailableteams/{leagueShortcut}/{leagueSeason}` 拉取球队列表，再按本地 `openLigaDbTeamId` 查找对应球队。当前种子数据包含几个可直接演示的真实映射：
+
+- `FC Bayern München` → `40`
+- `Borussia Dortmund` → `7`
+- `RB Leipzig` → `1635`
+- `Eintracht Frankfurt` → `91`
+- `VfB Stuttgart` → `16`
+
+打开 `/teams/1`、`/teams/2` 或 `/teams/3` 时，如网络可访问 OpenLigaDB，页面会展示 `AVAILABLE` 的外部补充资料；网络失败或超时时，本地球队资料仍正常展示，并显示安全降级提示。

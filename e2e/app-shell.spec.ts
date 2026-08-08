@@ -18,13 +18,23 @@ test("用户可以浏览赛事、阶段和比赛详情", async ({ page }) => {
   await page.getByRole("link", { name: "浏览赛事" }).click();
   await expect(page.getByRole("heading", { name: "赛事列表" })).toBeVisible();
 
-  await page.getByRole("link", { name: "校园冠军杯" }).click();
-  await expect(page.getByRole("heading", { name: "校园冠军杯" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "A 组" })).toBeVisible();
+  await page
+    .getByRole("link", { name: "1. Fußball-Bundesliga 2024/2025" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "1. Fußball-Bundesliga 2024/2025" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "1. Spieltag" }),
+  ).toBeVisible();
 
-  await page.getByRole("link", { name: /软件学院 vs 人工智能学院/ }).click();
+  await page
+    .getByRole("link", { name: /Borussia Dortmund vs Eintracht Frankfurt/ })
+    .click();
   await expect(page.getByRole("heading", { name: "比赛详情" })).toBeVisible();
-  await expect(page.getByText("校园冠军杯 · A 组")).toBeVisible();
+  await expect(
+    page.getByText("1. Fußball-Bundesliga 2024/2025 · 1. Spieltag"),
+  ).toBeVisible();
   await expect(page.getByText("未开始")).toBeVisible();
 });
 
@@ -36,14 +46,18 @@ test("用户可以浏览球队列表、详情，并从比赛详情进入球队�
   await page.getByRole("link", { name: "球队资料" }).click();
   await expect(page.getByRole("heading", { name: "球队资料" })).toBeVisible();
 
-  await page.getByRole("link", { name: /软件学院/ }).click();
-  await expect(page.getByRole("heading", { name: "软件学院" })).toBeVisible();
-  await expect(page.getByText("外部球队资料暂不可用")).toBeVisible();
+  await page.getByRole("link", { name: /FC Bayern München/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "FC Bayern München" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "OpenLigaDB 补充资料" }),
+  ).toBeVisible();
 
   await page.goto("/matches/1");
-  await page.getByRole("link", { name: "人工智能学院" }).click();
+  await page.getByRole("link", { name: "Eintracht Frankfurt" }).click();
   await expect(
-    page.getByRole("heading", { name: "人工智能学院" }),
+    page.getByRole("heading", { name: "Eintracht Frankfurt" }),
   ).toBeVisible();
 });
 
@@ -143,9 +157,13 @@ test("登录用户可以收藏、查看并取消收藏比赛", async ({ page }) 
   await expect(page.getByText("已收藏比赛")).toBeVisible();
 
   await page.getByRole("link", { name: "查看我的收藏" }).click();
-  await expect(page.getByText("软件学院 vs 人工智能学院")).toBeVisible();
+  await expect(
+    page.getByText("Borussia Dortmund vs Eintracht Frankfurt"),
+  ).toBeVisible();
 
-  await page.getByRole("link", { name: /软件学院 vs 人工智能学院/ }).click();
+  await page
+    .getByRole("link", { name: /Borussia Dortmund vs Eintracht Frankfurt/ })
+    .click();
   await page.getByRole("button", { name: "取消收藏" }).click();
   await expect(page.getByText("已取消收藏")).toBeVisible();
 
@@ -196,16 +214,20 @@ test("用户可以查看积分榜和淘汰赛图", async ({ page }) => {
   await expect(page.getByText("比赛结果已保存")).toBeVisible();
 
   await page.goto("/competitions/1");
-  await page.getByRole("link", { name: "查看积分榜" }).click();
-  await expect(page.getByRole("heading", { name: "积分榜" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "A 组" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "软件学院" })).toBeVisible();
+  await page.getByRole("link", { name: "查看积分榜" }).first().click();
+  await expect(
+    page.getByRole("heading", { name: "积分榜", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "联赛积分榜" })).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Borussia Dortmund" }),
+  ).toBeVisible();
   await expect(page.getByRole("cell", { name: "3" }).last()).toBeVisible();
 
-  await page.goto("/competitions/1");
+  await page.goto("/competitions/2");
   await page.getByRole("link", { name: "查看淘汰赛图" }).click();
   await expect(page.getByRole("heading", { name: "淘汰赛图" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "半决赛" })).toBeVisible();
-  await expect(page.getByText("软件学院")).toBeVisible();
-  await expect(page.getByText("电子工程学院")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Endspiel" })).toBeVisible();
+  await expect(page.getByText("DSC Arminia Bielefeld")).toBeVisible();
+  await expect(page.getByText("VfB Stuttgart")).toBeVisible();
 });

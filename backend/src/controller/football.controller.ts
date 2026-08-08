@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Param, Query } from "@midwayjs/core";
 import type { Context } from "@midwayjs/koa";
 import { FootballService } from "../service/football.service";
+import { TeamExternalProfileService } from "../service/team-external-profile.service";
 import { MatchListQuery } from "../types/football";
 import { buildApiErrorResponse } from "../utils/http-errors";
 import { normalizeRequestId } from "../utils/request-id";
@@ -12,6 +13,10 @@ export class FootballController {
 
   @Inject()
   footballService: FootballService = new FootballService();
+
+  @Inject()
+  teamExternalProfileService: TeamExternalProfileService =
+    new TeamExternalProfileService();
 
   @Get("/competitions")
   async listCompetitions() {
@@ -74,6 +79,19 @@ export class FootballController {
 
     try {
       return this.footballService.listTeams();
+    } catch (error) {
+      return this.handleError(error, requestId);
+    }
+  }
+
+  @Get("/teams/:teamId/external-profile")
+  async getTeamExternalProfile(@Param("teamId") teamId: string) {
+    const requestId = this.prepareRequest();
+
+    try {
+      return await this.teamExternalProfileService.getTeamExternalProfile(
+        teamId,
+      );
     } catch (error) {
       return this.handleError(error, requestId);
     }

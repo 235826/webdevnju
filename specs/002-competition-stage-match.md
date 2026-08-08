@@ -55,7 +55,7 @@
 | AC    | 验证方式  | 命令或可复现步骤                                                                             | 结果 / 证据                                                     |
 | ----- | --------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | AC-01 | API / E2E | `npm run test --workspace backend` 查询赛事列表；`npm run test:e2e` 打开赛事页               | 通过：`backend/test/football.test.mts`、`e2e/app-shell.spec.ts` |
-| AC-02 | API / E2E | `npm run test --workspace backend` 按赛事查询比赛并检查阶段；`npm run test:e2e` 进入赛事详情 | 通过：赛事详情展示 `A 组` 和比赛入口                            |
+| AC-02 | API / E2E | `npm run test --workspace backend` 按赛事查询比赛并检查阶段；`npm run test:e2e` 进入赛事详情 | 通过：赛事详情展示 `1. Spieltag` 和比赛入口                     |
 | AC-03 | API Test  | `npm run test --workspace backend` 使用无匹配筛选查询比赛列表                                | 通过：返回 `{ data: [] }`                                       |
 | AC-04 | API / E2E | `npm run test --workspace backend` 查询比赛详情；`npm run test:e2e` 打开比赛详情页           | 通过：展示赛事、阶段、球队、开赛时间和状态                      |
 | AC-05 | API Test  | `npm run test --workspace backend` 查询不存在比赛和非法状态筛选                              | 通过：返回安全 `404` / `400` 错误响应                           |

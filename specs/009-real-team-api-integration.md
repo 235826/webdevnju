@@ -1,6 +1,6 @@
 # 009：OpenLigaDB 球队资料集成
 
-> 状态：草案
+> 状态：已验收
 >
 > 关联事项：Web 开发技术课程大作业
 
@@ -49,15 +49,15 @@
 
 ## 验证映射
 
-| AC    | 验证方式   | 命令或可复现步骤           | 结果 / 证据  |
-| ----- | ---------- | -------------------------- | ------------ |
-| AC-01 | API / E2E  | 准备可匹配球队并查看详情   | 待实现后填写 |
-| AC-02 | API / 组件 | 模拟 OpenLigaDB 失败或超时 | 待实现后填写 |
-| AC-03 | API / 组件 | 准备无匹配球队并查看详情   | 待实现后填写 |
-| AC-04 | API Test   | 模拟异常外部响应结构       | 待实现后填写 |
+| AC    | 验证方式   | 命令或可复现步骤           | 结果 / 证据                                                                                               |
+| ----- | ---------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| AC-01 | API / E2E  | 准备可匹配球队并查看详情   | `backend/test/team-external-profile.test.mts` 覆盖可用外部资料和缓存                                      |
+| AC-02 | API / 组件 | 模拟 OpenLigaDB 失败或超时 | `backend/test/team-external-profile.test.mts` 覆盖 `UNAVAILABLE` 安全降级                                 |
+| AC-03 | API / 组件 | 准备无匹配球队并查看详情   | `backend/test/team-external-profile.test.mts` 覆盖 `NO_MATCH`；`e2e/app-shell.spec.ts` 覆盖页面无匹配提示 |
+| AC-04 | API Test   | 模拟异常外部响应结构       | `backend/test/team-external-profile.test.mts` 覆盖异常结构不外泄                                          |
 
 ## 验收记录
 
-- `npm run check`：待执行。
-- 人工验收：待执行。
-- 已知限制：无。
+- `npm run check`：通过。
+- 人工验收：未执行；由 Playwright E2E 覆盖球队详情降级展示。
+- 已知限制：测试不依赖真实 OpenLigaDB 网络；当前种子球队已配置部分真实 `openLigaDbTeamId`，本地展示 `AVAILABLE` 仍依赖运行环境可访问 OpenLigaDB。

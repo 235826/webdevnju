@@ -55,9 +55,9 @@ test("AC-02 lists competition matches grouped by their stages", () => {
   const matches = service.listMatches({ competitionId: "1" });
   const stageNames = new Set(matches.data.map((match) => match.stage.name));
 
-  assert.equal(competition.data.name, "校园冠军杯");
-  assert.equal(stageNames.has("A 组"), true);
-  assert.equal(stageNames.has("淘汰赛"), true);
+  assert.equal(competition.data.name, "1. Fußball-Bundesliga 2024/2025");
+  assert.equal(stageNames.has("1. Spieltag"), true);
+  assert.equal(stageNames.has("34. Spieltag"), true);
 });
 
 test("AC-03 returns an empty match list when no match satisfies filters", () => {
@@ -74,10 +74,13 @@ test("AC-04 returns match details with competition, stage, teams, time, and stat
   const service = createFootballService();
   const response = service.getMatch("1");
 
-  assert.equal(response.data.competition.name, "校园冠军杯");
-  assert.equal(response.data.stage.name, "A 组");
-  assert.equal(response.data.homeTeam.name, "软件学院");
-  assert.equal(response.data.awayTeam.name, "人工智能学院");
+  assert.equal(
+    response.data.competition.name,
+    "1. Fußball-Bundesliga 2024/2025",
+  );
+  assert.equal(response.data.stage.name, "1. Spieltag");
+  assert.equal(response.data.homeTeam.name, "Borussia Dortmund");
+  assert.equal(response.data.awayTeam.name, "Eintracht Frankfurt");
   assert.equal(Number.isNaN(Date.parse(response.data.startsAt)), false);
   assert.equal(response.data.status, "SCHEDULED");
 });
@@ -103,13 +106,13 @@ test("003 AC-01 lists teams with stable name and id sorting", () => {
   const response = service.listTeams();
   const names = response.data.map((team) => team.name);
 
-  assert.deepEqual(names, [
-    "城市校友队",
-    "电子工程学院",
-    "人工智能学院",
-    "软件学院",
-  ]);
-  assert.equal(response.data[0].shortName, "校友");
+  assert.deepEqual(
+    names,
+    [...names].sort((left, right) => left.localeCompare(right, "zh-CN")),
+  );
+  assert.equal(names.includes("FC Bayern München"), true);
+  assert.equal(names.includes("Borussia Dortmund"), true);
+  assert.equal(names.includes("RB Leipzig"), true);
   assert.equal("openLigaDbTeamId" in response.data[0], true);
 });
 
@@ -117,10 +120,10 @@ test("003 AC-02 and AC-04 return local team details without external data", () =
   const service = createFootballService();
   const response = service.getTeam("1");
 
-  assert.equal(response.data.name, "软件学院");
-  assert.equal(response.data.shortName, "软件");
-  assert.equal(response.data.logoUrl, null);
-  assert.equal(response.data.openLigaDbTeamId, null);
+  assert.equal(response.data.name, "FC Bayern München");
+  assert.equal(response.data.shortName, "Bayern");
+  assert.equal(typeof response.data.logoUrl, "string");
+  assert.equal(response.data.openLigaDbTeamId, 40);
 });
 
 test("003 AC-03 match details reference the unified team data", () => {
@@ -148,7 +151,7 @@ test("006 AC-01 and AC-03 ranks league standings by points, goals, and configure
     {
       id: 10,
       competitionId: 1,
-      name: "联赛轮次",
+      name: "测试联赛轮次",
       type: "LEAGUE",
       groupName: null,
       sortOrder: 1,
@@ -241,9 +244,12 @@ test("006 AC-04 returns knockout bracket rounds by bracket position", () => {
   const response = service.getStageBracket("2");
 
   assert.equal(response.stageId, 2);
-  assert.equal(response.rounds[0].round, "半决赛");
+  assert.equal(response.rounds[0].round, "Endspiel");
   assert.equal(response.rounds[0].matches[0].bracketPosition, 1);
-  assert.equal(response.rounds[0].matches[0].homeTeam.name, "软件学院");
+  assert.equal(
+    response.rounds[0].matches[0].homeTeam.name,
+    "DSC Arminia Bielefeld",
+  );
 });
 
 test("006 AC-05 and AC-06 return distinguishable unsupported stage errors", async () => {
