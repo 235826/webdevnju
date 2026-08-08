@@ -255,6 +255,7 @@ test("010 AC-03 deleting a match also removes predictions, favorites, and commen
   const favoriteService = new FavoriteService();
   const predictionService = new PredictionService();
   const commentService = new CommentService();
+  commentService.userRepository = authService.userRepository;
   const user = authService.register({
     username: "cascade_user",
     password: "password123",
