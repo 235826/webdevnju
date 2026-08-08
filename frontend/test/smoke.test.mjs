@@ -98,3 +98,15 @@ test("prediction UI is wired to the documented API paths", async () => {
   assert.match(predictions, /\/api\/users\/me\/predictions/);
   assert.match(predictions, /暂无预测/);
 });
+
+test("admin match result UI is wired to the documented API path", async () => {
+  const matchDetailPath = path.join(
+    process.cwd(),
+    "src/app/matches/[matchId]/page.tsx",
+  );
+  const matchDetail = await readFile(matchDetailPath, "utf8");
+
+  assert.match(matchDetail, /\/api\/admin\/matches\/\$\{match\.id\}\/result/);
+  assert.match(matchDetail, /结果录入/);
+  assert.match(matchDetail, /保存结果/);
+});

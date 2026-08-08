@@ -5,16 +5,18 @@ import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { ApiClientError, fetchJson, sendJson } from "../../../lib/api-client";
 import type {
+  AuthResponse,
   Match,
   MatchResponse,
   NullablePredictionResponse,
   Prediction,
   PredictionResponse,
+  User,
 } from "../../../lib/api-types";
 
 type ViewState =
   | { kind: "loading" }
-  | { kind: "success"; match: Match }
+  | { kind: "success"; match: Match; currentUser: User | null }
   | { kind: "error"; message: string };
 
 export default function MatchDetailPage() {
@@ -25,10 +27,23 @@ export default function MatchDetailPage() {
   useEffect(() => {
     let active = true;
 
-    fetchJson<MatchResponse>(`/api/matches/${matchId}`)
-      .then((payload) => {
+    Promise.all([
+      fetchJson<MatchResponse>(`/api/matches/${matchId}`),
+      fetchJson<AuthResponse>("/api/auth/me").catch((error: unknown) => {
+        if (error instanceof ApiClientError && error.status === 401) {
+          return { data: null };
+        }
+
+        throw error;
+      }),
+    ])
+      .then(([matchPayload, userPayload]) => {
         if (active) {
-          setState({ kind: "success", match: payload.data });
+          setState({
+            kind: "success",
+            match: matchPayload.data,
+            currentUser: userPayload.data,
+          });
         }
       })
       .catch((error: unknown) => {
@@ -122,9 +137,126 @@ export default function MatchDetailPage() {
             </dl>
           </article>
           <PredictionPanel match={state.match} />
+          <AdminResultPanel
+            currentUser={state.currentUser}
+            match={state.match}
+            onMatchUpdated={(match) =>
+              setState({
+                kind: "success",
+                match,
+                currentUser: state.currentUser,
+              })
+            }
+          />
         </>
       ) : null}
     </main>
+  );
+}
+
+type AdminResultState =
+  | { kind: "idle"; message: string | null }
+  | { kind: "saving"; message: string }
+  | { kind: "error"; message: string };
+
+function AdminResultPanel({
+  currentUser,
+  match,
+  onMatchUpdated,
+}: {
+  currentUser: User | null;
+  match: Match;
+  onMatchUpdated: (match: Match) => void;
+}) {
+  const [homeScore, setHomeScore] = useState(
+    String(match.result?.homeScore ?? 0),
+  );
+  const [awayScore, setAwayScore] = useState(
+    String(match.result?.awayScore ?? 0),
+  );
+  const [state, setState] = useState<AdminResultState>({
+    kind: "idle",
+    message: null,
+  });
+
+  if (currentUser?.role !== "ADMIN") {
+    return null;
+  }
+
+  async function submitResult(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setState({ kind: "saving", message: "正在保存比赛结果" });
+
+    try {
+      const payload = await sendJson<MatchResponse>(
+        `/api/admin/matches/${match.id}/result`,
+        "PUT",
+        {
+          homeScore: Number(homeScore),
+          awayScore: Number(awayScore),
+        },
+      );
+
+      onMatchUpdated(payload.data);
+      setState({ kind: "idle", message: "比赛结果已保存" });
+    } catch (error) {
+      setState({
+        kind: "error",
+        message: error instanceof Error ? error.message : "结果保存失败",
+      });
+    }
+  }
+
+  return (
+    <section className="grid gap-5 rounded border border-slate-200 bg-white p-6">
+      <h2 className="text-2xl font-semibold text-slate-950">结果录入</h2>
+      <form
+        className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]"
+        onSubmit={submitResult}
+      >
+        <label className="grid gap-2 text-sm font-medium text-slate-700">
+          主队比分
+          <input
+            className="rounded border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            min={0}
+            name="homeResultScore"
+            onChange={(event) => setHomeScore(event.target.value)}
+            required
+            step={1}
+            type="number"
+            value={homeScore}
+          />
+        </label>
+        <label className="grid gap-2 text-sm font-medium text-slate-700">
+          客队比分
+          <input
+            className="rounded border border-slate-300 px-3 py-2 text-base text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
+            min={0}
+            name="awayResultScore"
+            onChange={(event) => setAwayScore(event.target.value)}
+            required
+            step={1}
+            type="number"
+            value={awayScore}
+          />
+        </label>
+        <button
+          className="self-end rounded bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          disabled={state.kind === "saving"}
+          type="submit"
+        >
+          保存结果
+        </button>
+      </form>
+      {state.message ? (
+        <p
+          className={state.kind === "error" ? "text-red-700" : "text-slate-600"}
+          role={state.kind === "error" ? "alert" : "status"}
+        >
+          {state.message}
+        </p>
+      ) : null}
+    </section>
   );
 }
 

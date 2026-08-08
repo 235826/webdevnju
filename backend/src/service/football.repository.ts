@@ -243,6 +243,28 @@ export class FootballRepository {
     return this.toMatch(match);
   }
 
+  updateMatchResult(
+    id: number,
+    result: { homeScore: number; awayScore: number },
+  ): Match | undefined {
+    const match = matches.find((candidate) => candidate.id === id);
+
+    if (!match) {
+      return undefined;
+    }
+
+    const now = new Date().toISOString();
+    match.result = {
+      homeScore: result.homeScore,
+      awayScore: result.awayScore,
+      updatedAt: now,
+    };
+    match.status = "FINISHED";
+    match.updatedAt = now;
+
+    return this.toMatch(match);
+  }
+
   private toMatch(match: StoredMatch): Match {
     const stage = this.requireStage(match.stageId);
     const competition = this.requireCompetition(stage.competitionId);

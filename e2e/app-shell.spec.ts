@@ -83,3 +83,37 @@ test("登录用户可以提交、修改并查看自己的预测", async ({ page 
   await expect(page.getByRole("heading", { name: "我的预测" })).toBeVisible();
   await expect(page.getByText("预测比分：3 : 2")).toBeVisible();
 });
+
+test("管理员可以录入比赛结果，普通用户看不到结果录入表单", async ({ page }) => {
+  const username = `normal_${Date.now()}`;
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "注册" }).first().click();
+  await page.getByLabel("用户名").fill(username);
+  await page.getByLabel("密码").fill("password123");
+  await page.getByRole("button", { name: "注册" }).last().click();
+  await page.getByRole("button", { name: "登录" }).first().click();
+  await page.getByLabel("用户名").fill(username);
+  await page.getByLabel("密码").fill("password123");
+  await page.getByRole("button", { name: "登录" }).last().click();
+
+  await page.goto("/matches/4");
+  await expect(page.getByRole("heading", { name: "比赛详情" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "结果录入" })).toHaveCount(0);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "登出" }).click();
+  await page.getByLabel("用户名").fill("admin");
+  await page.getByLabel("密码").fill("Admin12345");
+  await page.getByRole("button", { name: "登录" }).last().click();
+  await expect(page.getByText("已登录为 admin")).toBeVisible();
+
+  await page.goto("/matches/4");
+  await expect(page.getByRole("heading", { name: "结果录入" })).toBeVisible();
+  await page.getByLabel("主队比分").fill("4");
+  await page.getByLabel("客队比分").fill("2");
+  await page.getByRole("button", { name: "保存结果" }).click();
+  await expect(page.getByText("比赛结果已保存")).toBeVisible();
+  await expect(page.getByText("4 : 2")).toBeVisible();
+  await expect(page.getByText("已结束")).toBeVisible();
+});

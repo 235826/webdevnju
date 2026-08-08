@@ -102,6 +102,8 @@ export type ScoreLineRequest = {
   awayScore?: unknown;
 };
 
+export type MatchResultRequest = ScoreLineRequest;
+
 export type PredictionResponse = {
   data: Prediction;
 };
