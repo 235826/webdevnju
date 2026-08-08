@@ -32,6 +32,31 @@ test("013 AC-01 initializes real seed data in an empty SQLite database", () => {
   assert.equal(repository.findTeam(1)?.name, "FC Bayern München");
   assert.equal(repository.findMatch(1)?.homeTeam.name, "Borussia Dortmund");
 
+  const recentCompetition = repository
+    .listCompetitions()
+    .find((competition) => competition.name === "近期足球比赛精选 2026-08");
+  assert.ok(recentCompetition);
+
+  const recentMatches = repository.listMatches({
+    competitionId: recentCompetition.id,
+  });
+  const statusCounts = recentMatches.reduce<Record<string, number>>(
+    (counts, match) => {
+      counts[match.status] = (counts[match.status] ?? 0) + 1;
+      return counts;
+    },
+    {},
+  );
+
+  assert.equal(recentMatches.length, 20);
+  assert.deepEqual(statusCounts, {
+    FINISHED: 7,
+    LIVE: 6,
+    SCHEDULED: 7,
+  });
+  assert.equal(repository.findMatch(5)?.result?.homeScore, 2);
+  assert.equal(repository.findMatch(11)?.result?.awayScore, 0);
+
   FootballRepository.closeConnection(databasePath);
 });
 
