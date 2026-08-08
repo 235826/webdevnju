@@ -11,12 +11,13 @@
 
 ## 当前状态
 
-旧模板代码已清理，仓库当前保留可运行的最小足球赛事平台骨架：
+旧模板代码已清理，仓库当前已实现一套可运行的足球赛事平台垂直切片：
 
-- 后端提供 `GET /api/health`
-- 前端首页展示项目入口
-- `specs/` 已写入足球赛事平台功能规格
-- `contracts/openapi.yaml` 已重写为足球赛事 API 契约
+- 后端提供健康检查、认证、赛事/阶段/比赛/球队浏览、预测、收藏、评论、积分榜、淘汰赛图、后台数据管理和比赛结果录入 API。
+- 前端提供首页、赛事与球队浏览、比赛详情、个人预测、个人收藏、评论互动、积分榜、淘汰赛图和后台比赛管理页面。
+- 本地数据默认持久化到 SQLite，测试使用内存库或临时文件，避免污染开发数据。
+- `specs/` 维护功能规格与验收标准，`contracts/openapi.yaml` 作为 HTTP 边界的来源。
+- 根级 `npm run check` 会覆盖格式、lint、类型、单元测试、构建和 Playwright 端到端测试。
 
 后续功能开发应按 `specs → contracts → backend/frontend → test/check` 的顺序推进。
 
@@ -122,3 +123,34 @@ npm run dev
 - `VfB Stuttgart` → `16`
 
 打开 `/teams/1`、`/teams/2` 或 `/teams/3` 时，如网络可访问 OpenLigaDB，页面会展示 `AVAILABLE` 的外部补充资料；网络失败或超时时，本地球队资料仍正常展示，并显示安全降级提示。
+
+## Docker 交付
+
+可用 Docker Compose 一条命令启动完整系统：
+
+```bash
+docker compose -f infra/compose.yaml up --build
+```
+
+启动后访问：
+
+- Web 页面：http://localhost:3000
+- 同源 API 健康检查：http://localhost:3000/api/health
+
+Compose 会启动前端和后端容器。后端使用 SQLite 作为本地关系型数据库，并把数据库文件保存到 `football-platform-data` Docker volume：
+
+- 容器内数据库路径：`/app/backend/data/football-platform.sqlite`
+- 默认管理员账号：`admin`
+- 默认管理员密码：`Admin12345`
+
+停止服务：
+
+```bash
+docker compose -f infra/compose.yaml down
+```
+
+如需同时清除 Docker 持久化数据卷，可执行：
+
+```bash
+docker compose -f infra/compose.yaml down -v
+```
