@@ -113,6 +113,24 @@ test("007 AC-03 repeated favorite keeps only one item", () => {
   assert.equal(favoriteService.countFavorites(user.id, 1), 1);
 });
 
+test("007 AC-03 concurrent repeated favorite keeps only one item", async () => {
+  const authService = createAuthService();
+  const favoriteService = createFavoriteService();
+  const user = createUser(authService, "favorite_ac03_concurrent");
+
+  const responses = await Promise.all(
+    [0, 1, 2, 3, 4].map(() =>
+      Promise.resolve(favoriteService.favoriteMatch(user, "1")),
+    ),
+  );
+
+  assert.equal(favoriteService.countFavorites(user.id, 1), 1);
+  assert.equal(
+    responses.every((response) => response.data.id === responses[0].data.id),
+    true,
+  );
+});
+
 test("007 AC-04 rejects unauthenticated favorite writes", async () => {
   const { controller, headers } = createController();
   const favorite = await controller.favoriteMatch("1");

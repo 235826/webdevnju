@@ -203,6 +203,33 @@ test("AC-06 concurrent creates leave at most one active prediction", async () =>
   assert.equal(predictionService.countActivePredictions(user.id, 4), 1);
 });
 
+test("AC-06 concurrent updates leave at most one active prediction", async () => {
+  const authService = createAuthService();
+  const predictionService = createPredictionService();
+  const user = createUser(authService, "predictor_ac06_update");
+
+  predictionService.createMyPrediction(user, "4", {
+    homeScore: 0,
+    awayScore: 0,
+  });
+
+  await Promise.all(
+    [1, 2, 3, 4, 5].map((score) =>
+      Promise.resolve(
+        predictionService.updateMyPrediction(user, "4", {
+          homeScore: score,
+          awayScore: 1,
+        }),
+      ),
+    ),
+  );
+
+  const current = predictionService.getMyPrediction(user, "4");
+  assert.equal(predictionService.countActivePredictions(user.id, 4), 1);
+  assert.equal(current.data?.isActive, true);
+  assert.equal(current.data?.awayScore, 1);
+});
+
 test("AC-07 rejects missing, non-integer, and negative scores", () => {
   const authService = createAuthService();
   const predictionService = createPredictionService();

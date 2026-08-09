@@ -17,6 +17,8 @@ const { AuthService } =
   require("../dist/service/auth.service.js") as typeof import("../src/service/auth.service.ts");
 const { CommentService } =
   require("../dist/service/comment.service.js") as typeof import("../src/service/comment.service.ts");
+const { AdminDataService } =
+  require("../dist/service/admin-data.service.js") as typeof import("../src/service/admin-data.service.ts");
 const { FootballRepository } =
   require("../dist/service/football.repository.js") as typeof import("../src/service/football.repository.ts");
 const { PasswordService } =
@@ -157,6 +159,64 @@ test("008 AC-03 paginates comments with stable ascending order", () => {
   );
 });
 
+test("008 AC-03 paginates larger comment sets with page size bounds", () => {
+  const authService = createAuthService();
+  const commentService = createCommentService(authService);
+  const user = createUser(authService, "comment_ac03_large");
+  const match = new AdminDataService().createMatch({
+    stageId: 1,
+    homeTeamId: 1,
+    awayTeamId: 6,
+    startsAt: "2027-04-01T10:00:00.000Z",
+    status: "SCHEDULED",
+    groupName: null,
+    knockoutRound: null,
+    bracketPosition: null,
+  }).data;
+  const createdIds = Array.from({ length: 120 }, (_, index) => {
+    return commentService.createMatchComment(user, match.id, {
+      content: `大量分页评论 ${index + 1}`,
+    }).data.id;
+  });
+
+  const firstPage = commentService.listMatchComments(match.id, {
+    page: "1",
+    pageSize: "100",
+  });
+  const secondPage = commentService.listMatchComments(match.id, {
+    page: "2",
+    pageSize: "100",
+  });
+  const emptyPage = commentService.listMatchComments(match.id, {
+    page: "3",
+    pageSize: "100",
+  });
+
+  assert.equal(firstPage.pagination.pageSize, 100);
+  assert.equal(firstPage.pagination.total >= 120, true);
+  assert.deepEqual(
+    firstPage.data.slice(-100).map((comment) => comment.id),
+    createdIds.slice(0, 100),
+  );
+  assert.deepEqual(
+    secondPage.data.slice(-20).map((comment) => comment.id),
+    createdIds.slice(100),
+  );
+  assert.equal(
+    emptyPage.data.some((comment) => createdIds.includes(comment.id)),
+    false,
+  );
+  assert.equal(emptyPage.pagination.total, firstPage.pagination.total);
+  assert.throws(
+    () =>
+      commentService.listMatchComments(match.id, {
+        page: "1",
+        pageSize: "101",
+      }),
+    { code: "VALIDATION_FAILED", status: 400 },
+  );
+});
+
 test("008 AC-04 author can edit their own comment", () => {
   const authService = createAuthService();
   const commentService = createCommentService(authService);
@@ -175,6 +235,65 @@ test("008 AC-04 author can edit their own comment", () => {
       .listMatchComments("1", {})
       .data.some((item) => item.content === "更新后的内容"),
     true,
+  );
+});
+
+test("008 AC-04 and AC-05 handle edit and delete interleavings safely", () => {
+  const authService = createAuthService();
+  const commentService = createCommentService(authService);
+  const owner = createUser(authService, "comment_interleave_owner");
+  const other = createUser(authService, "comment_interleave_other");
+  const deletedBeforeEdit = commentService.createMatchComment(owner, "1", {
+    content: "先删后改",
+  });
+  const editedBeforeDelete = commentService.createMatchComment(owner, "1", {
+    content: "先改后删",
+  });
+  const deletedBeforeUnauthorized = commentService.createMatchComment(
+    owner,
+    "1",
+    {
+      content: "删除后越权访问",
+    },
+  );
+
+  commentService.deleteComment(owner, deletedBeforeEdit.data.id);
+  assert.throws(
+    () =>
+      commentService.updateComment(owner, deletedBeforeEdit.data.id, {
+        content: "删除后不能编辑",
+      }),
+    { code: "NOT_FOUND", status: 404 },
+  );
+
+  const updated = commentService.updateComment(
+    owner,
+    editedBeforeDelete.data.id,
+    {
+      content: "编辑后删除",
+    },
+  );
+  assert.equal(updated.data.content, "编辑后删除");
+  commentService.deleteComment(owner, editedBeforeDelete.data.id);
+  assert.equal(
+    commentService
+      .listMatchComments("1", {})
+      .data.some((comment) => comment.id === editedBeforeDelete.data.id),
+    false,
+  );
+
+  commentService.deleteComment(owner, deletedBeforeUnauthorized.data.id);
+  assert.throws(
+    () =>
+      commentService.updateComment(other, deletedBeforeUnauthorized.data.id, {
+        content: "删除后越权编辑",
+      }),
+    { code: "NOT_FOUND", status: 404 },
+  );
+  assert.throws(
+    () =>
+      commentService.deleteComment(other, deletedBeforeUnauthorized.data.id),
+    { code: "NOT_FOUND", status: 404 },
   );
 });
 

@@ -1,0 +1,36 @@
+1. GitHub 仓库地址
+
+https://github.com/235826/webdevnju
+
+2. Docker Compose 启动命令
+
+```bash
+docker compose -f infra/compose.yaml up --build
+```
+
+启动后访问：
+
+- 前端页面：http://localhost:3000
+- 后端健康检查：http://localhost:3000/api/health
+
+停止服务：
+
+```bash
+docker compose -f infra/compose.yaml down
+```
+
+3. 数据库和资源文件挂载说明
+
+- 后端使用 SQLite 数据库。
+- Docker Compose 中后端容器的数据库路径为：
+  `/app/backend/data/football-platform.sqlite`
+- 数据库目录通过 Docker 命名卷挂载：
+  `football-platform-data:/app/backend/data`
+- 因此数据库文件会保存在 Docker volume `football-platform-data` 中，容器重建后数据仍可保留。
+- 如需清除数据库持久化数据，可执行：
+
+```bash
+docker compose -f infra/compose.yaml down -v
+```
+
+- 本项目无需要额外挂载的上传资源目录。球队 Logo 等展示资源使用代码中的外部 URL 或本地数据字段；前端静态构建产物已包含在 Docker 镜像中。

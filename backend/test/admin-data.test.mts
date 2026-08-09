@@ -288,6 +288,25 @@ test("010 AC-03 deleting a match also removes predictions, favorites, and commen
   assert.equal(favoriteService.countFavorites(user.id, match.id), 0);
   assert.equal(predictionService.countActivePredictions(user.id, match.id), 0);
   assert.equal(commentService.countComments(match.id), 0);
+  assert.throws(() => favoriteService.favoriteMatch(user, match.id), {
+    code: "NOT_FOUND",
+    status: 404,
+  });
+  assert.throws(
+    () =>
+      predictionService.createMyPrediction(user, match.id, {
+        homeScore: 1,
+        awayScore: 0,
+      }),
+    { code: "NOT_FOUND", status: 404 },
+  );
+  assert.throws(
+    () =>
+      commentService.createMatchComment(user, match.id, {
+        content: "删除后评论",
+      }),
+    { code: "NOT_FOUND", status: 404 },
+  );
 });
 
 test("010 AC-04 normal users cannot write admin data", async () => {

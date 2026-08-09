@@ -1010,22 +1010,35 @@ export class FootballRepository {
     stageId?: number;
     status?: MatchStatus;
   }): Match[] {
-    const rows = this.db
-      .prepare("SELECT * FROM matches ORDER BY starts_at ASC, id ASC")
-      .all()
-      .map((row) => toStoredMatch(row as MatchRow));
+    const conditions: string[] = [];
+    const parameters: (number | MatchStatus)[] = [];
 
-    return rows
-      .map((match) => this.toMatch(match))
-      .filter((match) => {
-        return (
-          (filters.competitionId === undefined ||
-            match.competition.id === filters.competitionId) &&
-          (filters.stageId === undefined ||
-            match.stage.id === filters.stageId) &&
-          (filters.status === undefined || match.status === filters.status)
-        );
-      });
+    if (filters.competitionId !== undefined) {
+      conditions.push(
+        "stage_id IN (SELECT id FROM stages WHERE competition_id = ?)",
+      );
+      parameters.push(filters.competitionId);
+    }
+
+    if (filters.stageId !== undefined) {
+      conditions.push("stage_id = ?");
+      parameters.push(filters.stageId);
+    }
+
+    if (filters.status !== undefined) {
+      conditions.push("status = ?");
+      parameters.push(filters.status);
+    }
+
+    const whereClause =
+      conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM matches${whereClause} ORDER BY starts_at ASC, id ASC`,
+      )
+      .all(...parameters);
+
+    return rows.map((row) => this.toMatch(toStoredMatch(row as MatchRow)));
   }
 
   listTeams(): Team[] {
@@ -1426,6 +1439,8 @@ function initializeSchema(db: DatabaseSync): void {
     CREATE INDEX IF NOT EXISTS idx_matches_stage_id ON matches(stage_id);
     CREATE INDEX IF NOT EXISTS idx_matches_home_team_id ON matches(home_team_id);
     CREATE INDEX IF NOT EXISTS idx_matches_away_team_id ON matches(away_team_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_status_starts_at_id ON matches(status, starts_at, id);
+    CREATE INDEX IF NOT EXISTS idx_matches_stage_starts_at_id ON matches(stage_id, starts_at, id);
   `);
 }
 
